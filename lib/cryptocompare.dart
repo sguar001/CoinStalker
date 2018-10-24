@@ -159,6 +159,41 @@ class CryptoCompare {
   Future<double> price(String fromSymbol, String toSymbol) async =>
       (await prices(fromSymbol, [toSymbol]))[toSymbol];
 
+  Future<List<Ohlcv>> _ohlcv(
+      String endpoint, String fromSymbol, String toSymbol,
+      {int limit}) async {
+    var params = <String, String>{
+      'fsym': fromSymbol,
+      'tsym': toSymbol,
+    };
+
+    if (params['fsym'].length > 10) {
+      throw ArgumentError('fsym length must not exceed 10');
+    }
+    if (params['tsym'].length > 10) {
+      throw ArgumentError('tsym length must not exceed 10');
+    }
+
+    if (limit != null) {
+      params['limit'] = limit.toString();
+    }
+
+    final object = await _fetchJson(endpoint, params: params) as Map;
+    return (object['Data'] as List).map((x) => Ohlcv.fromJson(x)).toList();
+  }
+
+  Future<List<Ohlcv>> minuteOhlcv(String fromSymbol, String toSymbol,
+          {int limit}) async =>
+      await _ohlcv('data/histominute', fromSymbol, toSymbol, limit: limit);
+
+  Future<List<Ohlcv>> hourOhlcv(String fromSymbol, String toSymbol,
+          {int limit}) async =>
+      await _ohlcv('data/histohour', fromSymbol, toSymbol, limit: limit);
+
+  Future<List<Ohlcv>> dayOhlcv(String fromSymbol, String toSymbol,
+          {int limit}) async =>
+      await _ohlcv('data/histoday', fromSymbol, toSymbol, limit: limit);
+
   Uri _uri(String path, {Map<String, String> params}) =>
       Uri.https(_authority, path, params);
   Future<http.Response> _fetchRaw(String path,
@@ -387,4 +422,30 @@ class NewsCategory {
   factory NewsCategory.fromJson(Map<String, dynamic> json) =>
       _$NewsCategoryFromJson(json);
   Map<String, dynamic> toJson() => _$NewsCategoryToJson(this);
+}
+
+@JsonSerializable()
+class Ohlcv {
+  @JsonKey(fromJson: _ccFromPosixTime, toJson: _ccToPosixTime)
+  final DateTime time;
+  final num open;
+  final num high;
+  final num low;
+  final num close;
+  @JsonKey(name: 'volumefrom')
+  final num volumeFrom;
+  @JsonKey(name: 'volumeto')
+  final num volumeTo;
+
+  Ohlcv(
+      {this.time,
+      this.open,
+      this.high,
+      this.low,
+      this.close,
+      this.volumeFrom,
+      this.volumeTo});
+
+  factory Ohlcv.fromJson(Map<String, dynamic> json) => _$OhlcvFromJson(json);
+  Map<String, dynamic> toJson() => _$OhlcvToJson(this);
 }

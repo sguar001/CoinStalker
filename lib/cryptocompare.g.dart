@@ -182,3 +182,24 @@ Map<String, dynamic> _$NewsCategoryToJson(NewsCategory instance) =>
       'categoryName': instance.name,
       'wordsAssociatedWithCategory': instance.associatedWords
     };
+
+Ohlcv _$OhlcvFromJson(Map<String, dynamic> json) {
+  return Ohlcv(
+      time: json['time'] == null ? null : _ccFromPosixTime(json['time'] as int),
+      open: json['open'] as num,
+      high: json['high'] as num,
+      low: json['low'] as num,
+      close: json['close'] as num,
+      volumeFrom: json['volumefrom'] as num,
+      volumeTo: json['volumeto'] as num);
+}
+
+Map<String, dynamic> _$OhlcvToJson(Ohlcv instance) => <String, dynamic>{
+      'time': instance.time == null ? null : _ccToPosixTime(instance.time),
+      'open': instance.open,
+      'high': instance.high,
+      'low': instance.low,
+      'close': instance.close,
+      'volumefrom': instance.volumeFrom,
+      'volumeto': instance.volumeTo
+    };
