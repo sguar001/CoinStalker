@@ -7,6 +7,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'cryptocompare.g.dart';
 
+// Based on the API documented at https://min-api.cryptocompare.com/
+
 // CryptoCompare returns some strange JSON at times.  These wrapper functions
 // are necessary to get the (de)serialization correct for some calls.
 
@@ -70,16 +72,39 @@ class CryptoCompare {
       String language = 'EN',
       NewsSortOrder sortOrder = NewsSortOrder.latest}) async {
     var params = Map<String, String>();
-    if (feeds != null) params['feeds'] = _ccToList(feeds);
-    if (categories != null) params['categories'] = _ccToList(categories);
-    if (excludedCategories != null) {
-      params['excludedCategories'] = _ccToList(excludedCategories);
+    if (feeds != null) {
+      params['feeds'] = _ccToList(feeds);
+      if (params['feeds'].length > 400) {
+        throw ArgumentError('feeds length must not exceed 400');
+      }
     }
-    if (language != null) params['lang'] = language;
+
+    if (categories != null) {
+      params['categories'] = _ccToList(categories);
+      if (params['categories'].length > 400) {
+        throw ArgumentError('categories length must not exceed 400');
+      }
+    }
+
+    if (excludedCategories != null) {
+      params['excludeCategories'] = _ccToList(excludedCategories);
+      if (params['excludeCategories'].length > 400) {
+        throw ArgumentError('excludeCategories length must not exceed 400');
+      }
+    }
+
+    if (language != null) {
+      params['lang'] = language.toUpperCase();
+      if (params['lang'].length > 4) {
+        throw ArgumentError('lang length must not exceed 4');
+      }
+    }
+
     if (sortOrder != null) {
       params['sortOrder'] =
           sortOrder.toString().replaceAll('NewsSortOrder.', '');
     }
+
     final object = await _fetchJson('data/v2/news/', params: params);
     return News.fromJson(object);
   }
@@ -113,14 +138,22 @@ class CryptoCompare {
         (v as Map).map((k, v) => MapEntry(k as String, v as num))));
   }
 
-  Future<Map<String, double>> prices(
+  Future<Map<String, num>> prices(
       String fromSymbol, List<String> toSymbols) async {
     final params = <String, String>{
       'fsym': fromSymbol,
       'tsyms': _ccToList(toSymbols),
     };
+
+    if (params['fsym'].length > 10) {
+      throw ArgumentError('fsym length must not exceed 10');
+    }
+    if (params['tsyms'].length > 500) {
+      throw ArgumentError('tsyms length must not exceed 500');
+    }
+
     final object = await _fetchJson('data/price', params: params) as Map;
-    return object.map((k, v) => MapEntry(k as String, v as double));
+    return object.map((k, v) => MapEntry(k as String, v as num));
   }
 
   Future<double> price(String fromSymbol, String toSymbol) async =>
