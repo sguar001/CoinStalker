@@ -94,6 +94,25 @@ class CryptoCompare {
     return object.map((x) => NewsCategory.fromJson(x)).toList();
   }
 
+  Future<Map<String, Map<String, num>>> priceMulti(
+      List<String> fromSymbols, List<String> toSymbols) async {
+    final params = <String, String>{
+      'fsyms': _ccToList(fromSymbols),
+      'tsyms': _ccToList(toSymbols),
+    };
+
+    if (params['fsyms'].length > 300) {
+      throw ArgumentError('fsyms length must not exceed 300');
+    }
+    if (params['tsyms'].length > 100) {
+      throw ArgumentError('tsyms length must not exceed 100');
+    }
+
+    final object = await _fetchJson('data/pricemulti', params: params) as Map;
+    return object.map((k, v) => MapEntry(k as String,
+        (v as Map).map((k, v) => MapEntry(k as String, v as num))));
+  }
+
   Future<Map<String, double>> prices(
       String fromSymbol, List<String> toSymbols) async {
     final params = <String, String>{
