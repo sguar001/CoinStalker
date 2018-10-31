@@ -76,6 +76,7 @@ class _CurrencyListState extends State<CurrencyList> {
     return new AppBar(
       centerTitle: true,
       title: _appBarTitle,
+      backgroundColor: Colors.green,
       leading: new IconButton(
         icon: _searchIcon,
         onPressed: _searchPressed,
@@ -104,6 +105,7 @@ class _CurrencyListState extends State<CurrencyList> {
       return new Scaffold(
         appBar: new AppBar(
           title: new Text('Saved Coins'),
+          backgroundColor: Colors.green,
           centerTitle: true,
         ),
         body: new ListView(children: divided),

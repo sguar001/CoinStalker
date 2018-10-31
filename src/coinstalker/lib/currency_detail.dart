@@ -93,6 +93,7 @@ class _CurrencyDetailState extends State<CurrencyDetail> {
     return new AppBar(
       centerTitle: true,
       title: new Text(widget.coin.coinName),
+      backgroundColor: Colors.green,
       leading: new IconButton(
         icon: new Icon(Icons.arrow_back),
         onPressed: () {
