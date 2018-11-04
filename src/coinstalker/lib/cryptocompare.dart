@@ -320,6 +320,21 @@ class Coins {
   factory Coins.fromJson(Map<String, dynamic> json) => _$CoinsFromJson(json);
   Map<String, dynamic> toJson() => _$CoinsToJson(this);
 
+  List<Coin> complete() => data
+      .map((x) => Coin(
+            id: x.id,
+            url: '$baseLinkUrl${x.url}',
+            imageUrl: '$baseImageUrl${x.imageUrl}',
+            name: x.name,
+            symbol: x.symbol,
+            coinName: x.coinName,
+            fullName: x.fullName,
+            algorithm: x.algorithm,
+            proofType: x.proofType,
+            sortOrder: x.sortOrder,
+          ))
+      .toList();
+
   static List<Coin> _dataFromJson(Map<String, dynamic> object) =>
       object.values.map((x) => Coin.fromJson(x)).toList();
   static Map<String, dynamic> _dataToJson(List<Coin> data) {
