@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'settings.dart';
+import 'calculator.dart';
 import 'currency_list.dart';
 import 'signin.dart';
 
@@ -77,11 +79,16 @@ class _UserDrawerState extends State<UserDrawer> {
             leading: Icon(Icons.view_list),
             onTap: _goToCurrencies,
           ),
+          ListTile(
+            title: Text('Exchange Rate Calculator'),
+            leading: Icon(Icons.compare_arrows),
+            onTap: _goToCalculator,
+          ),
           Divider(),
           ListTile(
             title: Text('Settings'),
             leading: Icon(Icons.settings),
-            onTap: () {}, // TODO
+            onTap: _goToSettings,
           ),
           ListTile(
             title: Text('Sign out'),
@@ -108,6 +115,15 @@ class _UserDrawerState extends State<UserDrawer> {
   void _goToCurrencies() {
     _goTo(
         MaterialPageRoute(builder: (_) => CurrencyListPage(user: widget.user)));
+  }
+
+  void _goToCalculator() {
+    _goTo(MaterialPageRoute(
+        builder: (_) => ExchangeRateCalculator(user: widget.user)));
+  }
+
+  void _goToSettings() {
+    _goTo(MaterialPageRoute(builder: (_) => Settings(user: widget.user)));
   }
 
   /// Signs out of the user account
