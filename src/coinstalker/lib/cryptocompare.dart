@@ -357,7 +357,7 @@ class CryptoCompare {
     return object.map((k, v) => MapEntry(k as String, v as num));
   }
 
-  Future<double> price(String fromSymbol, String toSymbol) async =>
+  Future<num> price(String fromSymbol, String toSymbol) async =>
       (await prices(fromSymbol, [toSymbol]))[toSymbol];
 
   Future<List<Ohlcv>> _ohlcv(
