@@ -384,15 +384,15 @@ class CryptoCompare {
   }
 
   Future<List<Ohlcv>> minuteOhlcv(String fromSymbol, String toSymbol,
-          {int limit}) async =>
+          {int limit = 30}) async =>
       await _ohlcv('data/histominute', fromSymbol, toSymbol, limit: limit);
 
   Future<List<Ohlcv>> hourOhlcv(String fromSymbol, String toSymbol,
-          {int limit}) async =>
+          {int limit = 24}) async =>
       await _ohlcv('data/histohour', fromSymbol, toSymbol, limit: limit);
 
   Future<List<Ohlcv>> dayOhlcv(String fromSymbol, String toSymbol,
-          {int limit}) async =>
+          {int limit = 14}) async =>
       await _ohlcv('data/histoday', fromSymbol, toSymbol, limit: limit);
 
   Uri _uri(String path, {Map<String, String> params}) =>
