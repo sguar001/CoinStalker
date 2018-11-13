@@ -46,7 +46,10 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                       // TODO: OLHC graph
                       _buildPropertyRow(
                           name: 'Symbol', value: Text(widget.coin.symbol)),
-                      _buildPropertyRow(name: 'Price', value: _buildPrice()),
+                      _buildPropertyRow(
+                          name: 'Price',
+                          value: currentPriceWidget(widget.coin.symbol,
+                              exact: true)),
                       _buildPropertyRow(
                           name: 'Algorithm',
                           value: Text(widget.coin.algorithm)),
@@ -87,7 +90,4 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
           ],
         ),
       );
-
-  /// Creates a future builder widget for the current price of the coin
-  Widget _buildPrice() => currentPriceWidget(widget.coin.symbol);
 }
