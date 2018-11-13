@@ -536,8 +536,11 @@ class Coins {
           ))
       .toList();
 
-  static List<Coin> _dataFromJson(Map<String, dynamic> object) =>
-      object.values.map((x) => Coin.fromJson(x)).toList();
+  static List<Coin> _dataFromJson(Map<String, dynamic> object) => object.values
+      .cast<Map<String, dynamic>>()
+      .where((x) => x['IsTrading'] == true)
+      .map((x) => Coin.fromJson(x))
+      .toList();
   static Map<String, dynamic> _dataToJson(List<Coin> data) {
     final entries =
         data.map((x) => MapEntry<String, dynamic>(x.symbol, x.toJson()));
