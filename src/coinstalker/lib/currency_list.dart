@@ -9,9 +9,22 @@ import 'price_widget.dart';
 import 'session.dart';
 import 'track_button.dart';
 
+/// Type of the delegate function called when a coin is pressed
+typedef void CoinPressedDelegate(Coin coin);
+
 /// Widget for displaying, searching, and sorting the list of currencies
 /// This class is stateful because it must update as the user searches and sorts
 class CurrencyListPage extends StatefulWidget {
+  /// Function to call when a coin is pressed
+  final CoinPressedDelegate onCoinPressed;
+
+  /// Whether the page should display as a dialog instead of a full page
+  /// When used as a dialog, there will be no drawer in the app bar
+  final bool asDialog;
+
+  /// Constructs this instance
+  CurrencyListPage({this.onCoinPressed, this.asDialog = false});
+
   /// Creates the mutable state for this widget
   @override
   createState() => _CurrencyListPageState();
@@ -75,7 +88,7 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
               ],
             ),
           ),
-          drawer: UserDrawer(),
+          drawer: widget.asDialog ? null : UserDrawer(),
         ),
       );
 
@@ -176,9 +189,14 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
         ),
         // When the tile is tapped, transition to the details page for the
         // chosen coin
-        onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => CurrencyDetailsPage(coin: coin))),
+        onTap: () => (widget.onCoinPressed ?? _goToDetails)(coin),
       );
+
+  /// Navigates to the details page for the given coin
+  void _goToDetails(Coin coin) {
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => CurrencyDetailsPage(coin: coin)));
+  }
 
   /// Filters a list of coins to only include coins whose names contain the
   /// search filter text
