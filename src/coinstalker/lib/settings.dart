@@ -1,18 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'cryptocompare.dart';
 import 'drawer.dart';
 
 /// Widget for displaying the exchange rate calculator to
 /// exchange between two specified currencies
 class Settings extends StatefulWidget {
-  /// The current sign-in user
-  final FirebaseUser user;
-
-  /// Constructs this widget instance
-  Settings({@required this.user});
-
   /// Creates the mutable state for this widget
   @override
   createState() => _SettingsState();
@@ -34,9 +26,7 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: _buildAppBar(),
-        drawer: UserDrawer(user: widget.user),
-        body: _buildOptions());
+        appBar: _buildAppBar(), drawer: UserDrawer(), body: _buildOptions());
   }
 
   /// Return list of settings options

@@ -1,19 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'settings.dart';
 import 'calculator.dart';
 import 'currency_list.dart';
+import 'session.dart';
+import 'settings.dart';
 import 'signin.dart';
 
 /// Widget for displaying the side drawer when signed in
 class UserDrawer extends StatefulWidget {
-  /// The current sign-in user
-  final FirebaseUser user;
-
-  /// Constructs this widget instance
-  UserDrawer({@required this.user});
-
   /// Creates the mutable state for this widget
   @override
   createState() => _UserDrawerState();
@@ -23,6 +18,9 @@ class UserDrawer extends StatefulWidget {
 class _UserDrawerState extends State<UserDrawer> {
   /// Instance of the Firebase authentication library
   final _auth = FirebaseAuth.instance;
+
+  /// Instance of the application session
+  final _session = Session();
 
   /// Describes the part of the user interface represented by this widget
   @override
@@ -45,23 +43,23 @@ class _UserDrawerState extends State<UserDrawer> {
       );
 
   /// Builds a widget for displaying the user name
-  Widget _buildAccountName() => widget.user.displayName == null
+  Widget _buildAccountName() => _session.user.displayName == null
       ? Container()
-      : Text(widget.user.displayName);
+      : Text(_session.user.displayName);
 
   /// Builds a widget for displaying the user email address
   Widget _buildAccountEmail() =>
-      widget.user.email == null ? Container() : Text(widget.user.email);
+      _session.user.email == null ? Container() : Text(_session.user.email);
 
   /// Builds a widget for displaying the user portrait
-  Widget _buildAccountPicture() => widget.user.photoUrl == null
+  Widget _buildAccountPicture() => _session.user.photoUrl == null
       ? Container()
       : Container(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             image: DecorationImage(
               fit: BoxFit.fill,
-              image: NetworkImage(widget.user.photoUrl),
+              image: NetworkImage(_session.user.photoUrl),
             ),
           ),
         );
@@ -113,17 +111,15 @@ class _UserDrawerState extends State<UserDrawer> {
 
   /// Navigates to the list of currencies
   void _goToCurrencies() {
-    _goTo(
-        MaterialPageRoute(builder: (_) => CurrencyListPage(user: widget.user)));
+    _goTo(MaterialPageRoute(builder: (_) => CurrencyListPage()));
   }
 
   void _goToCalculator() {
-    _goTo(MaterialPageRoute(
-        builder: (_) => ExchangeRateCalculator(user: widget.user)));
+    _goTo(MaterialPageRoute(builder: (_) => ExchangeRateCalculator()));
   }
 
   void _goToSettings() {
-    _goTo(MaterialPageRoute(builder: (_) => Settings(user: widget.user)));
+    _goTo(MaterialPageRoute(builder: (_) => Settings()));
   }
 
   /// Signs out of the user account

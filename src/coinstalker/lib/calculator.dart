@@ -1,18 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'cryptocompare.dart';
 import 'drawer.dart';
+import 'session.dart';
 
 /// Widget for displaying the exchange rate calculator to
 /// exchange between two specified currencies
 class ExchangeRateCalculator extends StatefulWidget {
-  /// The current sign-in user
-  final FirebaseUser user;
-
-  /// Constructs this widget instance
-  ExchangeRateCalculator({@required this.user});
-
   /// Creates the mutable state for this widget
   @override
   createState() => _ExchangeRateCalculatorState();
@@ -22,14 +16,11 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
   /// Instance of the CryptoCompare library
   final _cryptoCompare = CryptoCompare();
 
+  /// Instance of the application session
+  final _session = Session();
+
   /// Get users default currency preference to display initially
   final String userPreferrence = '';
-
-  /// Future that holds all available coins
-  Future<List<Coin>> _allCoins;
-
-  /// List that holds all available coins
-  List<Coin> _coinsList;
 
   /// Coin type to be converted from
   String _fromValue;
@@ -50,24 +41,13 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
   /// Pass this into the TextField so that the input value persists!
   final _inputKey = GlobalKey(debugLabel: 'inputText');
 
-  /// Called when first initializing the state
-//  @override
-  void initState() {
-    super.initState();
-
-    // Start the coins request before the widget is built
-    // By only requesting the list of coins whenever the state is initialized,
-    // the request is only made once per instantiation of the page
-    _allCoins = _cryptoCompare.coins().then((coins) => coins.complete());
-  }
-
   /// Build the calculator which consists of two dropdown menus for user to select
   /// currencies to convert
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: _buildAppBar(),
-        drawer: UserDrawer(user: widget.user),
+        drawer: UserDrawer(),
         body: ListView(
           children: <Widget>[
             Row(
@@ -119,7 +99,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
 
                         /// Build dropdown menu
                         padding: const EdgeInsets.only(top: 32.0),
-                        child: _buildCoins(_allCoins, 'FROM')),
+                        child: _buildCoins('FROM')),
                   ],
                 ),
               ],
@@ -152,7 +132,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                   children: <Widget>[
                     Container(
                         padding: const EdgeInsets.only(top: 32.0),
-                        child: _buildCoins(_allCoins, 'TO')),
+                        child: _buildCoins('TO')),
                     Container(
                       padding: const EdgeInsets.only(top: 64.0),
                       width: 250.0,
@@ -175,40 +155,14 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
   }
 
   /// Creates a future builder widget for a list of coins
-  /// While the list is being retrieved, a progress indicator is displayed
-
-  Widget _buildCoins(Future<List<Coin>> future, String op) => FutureBuilder(
-        future: future,
-        builder: (context, snapshot) {
-          switch (snapshot.connectionState) {
-            case ConnectionState.active:
-            case ConnectionState.waiting:
-              return Center(child: CircularProgressIndicator());
-
-            case ConnectionState.none:
-            case ConnectionState.done:
-              if (snapshot.hasError || snapshot.data == null) {
-                print('error');
-                return Text(snapshot.error.toString()); // TODO: Style this
-              }
-
-//              coinNames = extractNames(snapshot.data);
-
-              /// Returns the list of coins
-              return _buildDropDown(snapshot.data, op);
-          }
-        },
-      );
-
-  /// Return the specified drop down menu, with the option to select the available coins
-  Widget _buildDropDown(List<Coin> coins, String op) {
+  Widget _buildCoins(String op) {
     ///TODO: NEED TO ADD CURRENCY VALUES HERE, SUCH AS USD, GPB, JPY, ETC.
     if (op == 'FROM') {
       return DropdownButton(
           hint: _fromValue == null
               ? Text('Select a Value to Convert From')
               : Text(_fromValue),
-          items: coins.map((Coin coin) {
+          items: _session.coins.map((Coin coin) {
             return DropdownMenuItem<String>(
                 child: Text(coin.fullName), value: coin.symbol);
           }).toList(),
@@ -221,7 +175,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
           hint: _toValue == null
               ? Text('Select a Value to Convert To')
               : Text(_toValue),
-          items: coins.map((Coin coin) {
+          items: _session.coins.map((Coin coin) {
             return DropdownMenuItem<String>(
                 child: Text(coin.fullName), value: coin.symbol);
           }).toList(),

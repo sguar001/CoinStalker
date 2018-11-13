@@ -1,22 +1,18 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'cryptocompare.dart';
-import 'database.dart';
 import 'drawer.dart';
+import 'session.dart';
+import 'track_button.dart';
 
 /// Widget for displaying the details of an individual currency
 /// This class is stateful because it must update as the user toggles tracking
 class CurrencyDetailsPage extends StatefulWidget {
-  /// The current signed-in user
-  final FirebaseUser user;
-
   /// The coin to display details for
   final Coin coin;
 
   /// Constructs the widget instance
-  CurrencyDetailsPage({@required this.user, @required this.coin});
+  CurrencyDetailsPage({@required this.coin});
 
   /// Creates the mutable state for this widget
   @override
@@ -25,20 +21,14 @@ class CurrencyDetailsPage extends StatefulWidget {
 
 /// State for the currency details page
 class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
+  /// Instance of the application session
+  final _session = Session();
+
   /// Instance of the CryptoCompare library
   final _cryptoCompare = CryptoCompare();
 
-  /// Instance of the Firestore library
-  final _firestore = Firestore.instance;
-
   /// Current price of the currency retrieved from CryptoCompare
   Future<double> _price;
-
-  /// Document reference for the current user profile
-  DocumentReference _userProfileRef;
-
-  /// User profile from _userProfileRef
-  Profile _userProfile;
 
   /// Called when this object is inserted into the tree
   /// Requests the price of the currency
@@ -51,43 +41,6 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
     // request is only made once per instantiation of the page
     // TODO: Use the user's chosen display currency
     _price = _cryptoCompare.price(widget.coin.symbol, 'USD');
-
-    // Request the user profile
-    _userProfileRef = Profile.buildReference(widget.user);
-    _userProfileRef
-        .snapshots()
-        .map((snapshot) => Profile.fromSnapshot(snapshot))
-        .listen((profile) => setState(() {
-              _userProfile = profile;
-            }));
-  }
-
-  /// Builds a button to display the tracked status of a coin
-  Widget _buildTrackButton() {
-    if (_userProfile.trackedSymbols.contains(widget.coin.symbol)) {
-      return IconButton(
-        icon: Icon(Icons.favorite),
-        color: Colors.red,
-        onPressed: () {
-          _firestore.runTransaction((tx) async {
-            _userProfileRef.updateData(<String, dynamic>{
-              'trackedSymbols': FieldValue.arrayRemove([widget.coin.symbol]),
-            });
-          });
-        },
-      );
-    }
-
-    return IconButton(
-      icon: Icon(Icons.favorite_border),
-      onPressed: () {
-        _firestore.runTransaction((tx) async {
-          _userProfileRef.updateData(<String, dynamic>{
-            'trackedSymbols': FieldValue.arrayUnion([widget.coin.symbol]),
-          });
-        });
-      },
-    );
   }
 
   /// Describes the part of the user interface represented by this widget
@@ -129,10 +82,10 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
           centerTitle: true,
           title: Text(widget.coin.coinName),
           actions: [
-            _buildTrackButton(),
+            buildTrackButton(widget.coin, _session.profileRef),
           ],
         ),
-        drawer: UserDrawer(user: widget.user),
+        drawer: UserDrawer(),
       );
 
   /// Creates a row for a property of the coin

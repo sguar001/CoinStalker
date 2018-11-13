@@ -8,6 +8,10 @@ class Profile {
   static DocumentReference buildReference(FirebaseUser user) =>
       Firestore.instance.document('profiles/${user.uid}');
 
+  /// Builds a stream for the given user profile reference
+  static Stream<Profile> buildStream(DocumentReference reference) =>
+      reference.snapshots().map((snapshot) => Profile.fromSnapshot(snapshot));
+
   /// Reference to the storing document
   final DocumentReference reference;
 

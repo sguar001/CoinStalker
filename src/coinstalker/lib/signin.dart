@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import 'dashboard.dart';
 import 'email_signin.dart';
 import 'modal_progress.dart';
+import 'splash.dart';
 
 /// Widget for selecting a method to sign in through
 /// This class is stateful because the interface must wait while signing in is
@@ -77,8 +77,8 @@ class _SignInPageState extends State<SignInPage> {
   void _makeAttempt(_Attempt attempt) async {
     setState(() {
       _blockingOperation = attempt()
-          .then((user) => Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => DashboardPage(user: user))))
+          .then((user) => Navigator.pushReplacement(
+              context, MaterialPageRoute(builder: (_) => SplashPage())))
           .catchError((e) => print(e)); // TODO: Better error reporting
     });
   }

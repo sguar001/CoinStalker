@@ -2,8 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:validate/validate.dart';
 
-import 'dashboard.dart';
 import 'modal_progress.dart';
+import 'splash.dart';
 
 /// Widget for signing in or registering with an email account
 /// This class is stateful because the interface contains a form which can
@@ -236,10 +236,8 @@ class _EmailSignInPageState extends State<EmailSignInPage> {
       _setBlockingOperation(attempt().then((user) {
         if (user != null) {
           // Clear the stack by popping all routes below the sign-in page
-          Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => DashboardPage(user: user)),
-              (_) => false);
+          Navigator.pushAndRemoveUntil(context,
+              MaterialPageRoute(builder: (_) => SplashPage()), (_) => false);
         }
       }).catchError((e) => print(e))); // TODO: Better error reporting
     } catch (e) {
