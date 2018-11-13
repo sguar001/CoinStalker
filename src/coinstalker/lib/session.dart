@@ -22,13 +22,18 @@ class Session {
   /// List of all coins
   final List<Coin> coins;
 
+  /// Set of all supported fiat symbols
+  final Set<String> fiatSymbols;
+
   /// Constructs a class instance
-  Session._({@required this.user, @required this.coins})
+  Session._(
+      {@required this.user, @required this.coins, @required this.fiatSymbols})
       : profileRef = Profile.buildReference(user);
 
   /// Initializes the session for a signed-in user
-  static void initialize({@required user, @required coins}) =>
-      _instance = Session._(user: user, coins: coins);
+  static void initialize(
+          {@required user, @required coins, @required fiatSymbols}) =>
+      _instance = Session._(user: user, coins: coins, fiatSymbols: fiatSymbols);
 
   /// Resets the session to a null instance
   static Session reset() => _instance = null;

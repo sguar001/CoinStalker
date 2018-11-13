@@ -34,15 +34,21 @@ class _SplashPageState extends State<SplashPage> {
             context, MaterialPageRoute(builder: (_) => SignInPage()));
       } else {
         // Begin the prefetch
-        Future.wait([_cryptoCompare.coins().then((coins) => coins.complete())])
-            .then((List responses) {
+        Future.wait([
+          _cryptoCompare.coins().then((coins) => coins.complete()),
+          _cryptoCompare.fiatSymbols(),
+        ]).then((List responses) {
+          final coins = responses[0] as List<Coin>;
+          final fiatSymbols = responses[1] as Set<String>;
+
           // Fill out the session
-          Session.initialize(user: user, coins: responses[0]);
+          Session.initialize(
+              user: user, coins: coins, fiatSymbols: fiatSymbols);
 
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (_) => DashboardPage()));
         }).catchError((e) =>
-                print('Error in splash prefetch: $e')); // TODO: Error reporting
+            print('Error in splash prefetch: $e')); // TODO: Error reporting
       }
     });
   }
@@ -50,10 +56,10 @@ class _SplashPageState extends State<SplashPage> {
   /// Describes the part of the user interface represented by this widget
   @override
   Widget build(BuildContext context) =>
-    // TODO: Use a splash image
-    Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+      // TODO: Use a splash image
+      Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
 }
