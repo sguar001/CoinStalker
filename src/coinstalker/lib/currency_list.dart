@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'async_widget.dart';
 import 'cryptocompare.dart';
 import 'currency_details.dart';
 import 'database.dart';
@@ -191,19 +192,9 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
 
   /// Creates a stream builder widget for a list of coins
   /// While the list is being retrieved, a progress indicator is displayed
-  Widget _buildStreamCoins(Stream<List<Coin>> stream) => StreamBuilder(
+  Widget _buildStreamCoins(Stream<List<Coin>> stream) => streamWidget(
         stream: stream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            // TODO: Error reporting
-            print('Error in _buildStreamCoins: ${snapshot.error}');
-            return Center(child: Icon(Icons.error, color: Colors.red));
-          }
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-          return _buildCoinsListView(snapshot.data);
-        },
+        builder: (context, data) => _buildCoinsListView(data),
       );
 
   /// Creates a widget for the list of tracked coins

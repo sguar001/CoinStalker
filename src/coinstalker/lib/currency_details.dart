@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'async_widget.dart';
 import 'cryptocompare.dart';
 import 'drawer.dart';
 import 'session.dart';
@@ -107,20 +108,9 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
       );
 
   /// Creates a future builder widget for the current price of the coin
-  Widget _buildPrice() => FutureBuilder(
-      future: _price,
-      builder: (context, snapshot) {
-        switch (snapshot.connectionState) {
-          case ConnectionState.active:
-          case ConnectionState.waiting:
-            return Container();
-
-          case ConnectionState.none:
-          case ConnectionState.done:
-            if (snapshot.hasError || snapshot.data == null) {
-              return Text(snapshot.error.toString()); // TODO: Style this
-            }
-            return Text(snapshot.data.toString()); // TODO: Formatting
-        }
-      });
+  Widget _buildPrice() => futureWidget(
+        future: _price,
+        waitBuilder: emptyWaitBuilder,
+        builder: (context, data) => Text('$data'), // TODO: Formatting
+      );
 }
