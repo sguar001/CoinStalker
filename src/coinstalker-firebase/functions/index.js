@@ -8,6 +8,7 @@ const db = admin.firestore();
 const createProfile = (user) => {
   return db.collection('profiles').doc(user.uid)
     .set({
+      displaySymbol: 'USD',
       trackedSymbols: [],
     })
     .catch(console.error);

@@ -15,21 +15,27 @@ class Profile {
   /// Reference to the storing document
   final DocumentReference reference;
 
+  /// Preferred symbol to display exchange rates in
+  final String displaySymbol;
+
   /// List of tracked symbols
   final List<String> trackedSymbols;
 
   /// Constructs this document instance
-  Profile({this.reference, this.trackedSymbols});
+  Profile({this.reference, this.displaySymbol, this.trackedSymbols});
 
   /// Constructs this document instance from a map and optional reference
   Profile.fromMap(Map<String, dynamic> map, {this.reference})
-      : trackedSymbols = map['trackedSymbols'].cast<String>();
+      : displaySymbol = map['displaySymbol'],
+        trackedSymbols = map['trackedSymbols'].cast<String>();
 
   /// Constructs this document instance from a snapshot
   Profile.fromSnapshot(DocumentSnapshot snapshot)
       : this.fromMap(snapshot.data, reference: snapshot.reference);
 
   /// Converts this document instance to a map
-  toMap() =>
-      <String, dynamic>{'trackedSymbols': trackedSymbols.cast<dynamic>()};
+  toMap() => <String, dynamic>{
+        'displaySymbol': displaySymbol,
+        'trackedSymbols': trackedSymbols.cast<dynamic>()
+      };
 }
