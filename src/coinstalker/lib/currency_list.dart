@@ -5,6 +5,7 @@ import 'cryptocompare.dart';
 import 'currency_details.dart';
 import 'database.dart';
 import 'drawer.dart';
+import 'price_widget.dart';
 import 'session.dart';
 import 'track_button.dart';
 
@@ -164,7 +165,15 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   /// Creates a list tile widget for an individual coin
   Widget _buildCoinRow(Coin coin) => ListTile(
         title: Text(coin.fullName),
-        trailing: buildTrackButton(coin, _session.profileRef),
+        trailing: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: currentPriceWidget(coin.symbol)),
+            Flexible(child: buildTrackButton(coin, _session.profileRef)),
+          ],
+        ),
         // When the tile is tapped, transition to the details page for the
         // chosen coin
         onTap: () => Navigator.push(context,
