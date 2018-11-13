@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'async_widget.dart';
 import 'cryptocompare.dart';
 import 'drawer.dart';
+import 'price_widget.dart';
 import 'session.dart';
 import 'track_button.dart';
 
@@ -24,25 +24,6 @@ class CurrencyDetailsPage extends StatefulWidget {
 class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
   /// Instance of the application session
   final _session = Session();
-
-  /// Instance of the CryptoCompare library
-  final _cryptoCompare = CryptoCompare();
-
-  /// Current price of the currency retrieved from CryptoCompare
-  Future<double> _price;
-
-  /// Called when this object is inserted into the tree
-  /// Requests the price of the currency
-  @override
-  void initState() {
-    super.initState();
-
-    // Start the price request before the widget is built
-    // By only requesting the price whenever the state is initialized, the
-    // request is only made once per instantiation of the page
-    // TODO: Use the user's chosen display currency
-    _price = _cryptoCompare.price(widget.coin.symbol, 'USD');
-  }
 
   /// Describes the part of the user interface represented by this widget
   @override
@@ -108,9 +89,5 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
       );
 
   /// Creates a future builder widget for the current price of the coin
-  Widget _buildPrice() => futureWidget(
-        future: _price,
-        waitBuilder: emptyWaitBuilder,
-        builder: (context, data) => Text('$data'), // TODO: Formatting
-      );
+  Widget _buildPrice() => currentPriceWidget(widget.coin.symbol);
 }
