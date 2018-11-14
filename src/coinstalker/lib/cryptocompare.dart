@@ -9,29 +9,6 @@ part 'cryptocompare.g.dart';
 
 // Based on the API documented at https://min-api.cryptocompare.com/
 
-// CryptoCompare returns some strange JSON at times.  These wrapper functions
-// are necessary to get the (de)serialization correct for some calls.
-
-int _ccFromInt(dynamic x) {
-  if (x is int) {
-    return x;
-  }
-
-  final y = x as String;
-  return y == "N/A" ? null : int.parse(y);
-}
-
-String _ccToInt(int x) => x == null ? "N/A" : x.toString();
-
-List<String> _ccFromTags(String x) => x.split('|');
-String _ccToTags(List<String> x) => x.join('|');
-
-List<String> _ccFromList(String x) => x.split(',');
-String _ccToList(List<String> x) => x.join(',');
-
-DateTime _ccFromPosixTime(int x) => DateTime.fromMillisecondsSinceEpoch(x);
-int _ccToPosixTime(DateTime x) => x.millisecondsSinceEpoch;
-
 enum NewsSortOrder {
   latest,
   popular,
@@ -223,7 +200,45 @@ class CryptoCompare {
     'ZWL',
   ];
 
-  static const String _authority = 'min-api.cryptocompare.com';
+  static const _authority = 'min-api.cryptocompare.com';
+
+  static const maxLatestNewsFeedsLength = 400;
+  static const maxLatestNewsCategoriesLength = 400;
+  static const maxLatestNewsExcludedCategoriesLength = 400;
+  static const maxLatestNewsLanguageLength = 4;
+  static const maxPriceMultiFromSymbolsLength = 300;
+  static const maxPriceMultiToSymbolsLength = 100;
+  static const maxPricesFromSymbolLength = 10;
+  static const maxPricesToSymbolsLength = 500;
+  static const maxOhlcvFromSymbolLength = 10;
+  static const maxOhlcvToSymbolLength = 10;
+
+  // CryptoCompare returns some strange JSON at times.  These wrapper functions
+  // are necessary to get the (de)serialization correct for some calls.
+
+  static int toInt(dynamic x) {
+    if (x is int) return x;
+    final y = x as String;
+    return y == "N/A" ? null : int.parse(y);
+  }
+
+  static String fromInt(int x) => x == null ? "N/A" : x.toString();
+
+  static const tagSeparator = '|';
+  static List<String> toTags(String x) => x.split(tagSeparator);
+  static String fromTags(List<String> x) => x.join(tagSeparator);
+  static String appendTag(String tags, String x) =>
+      tags.isEmpty ? x : (tags + tagSeparator + x);
+
+  static const listSeparator = ',';
+  static List<String> toList(String x) => x.split(listSeparator);
+  static String fromList(List<String> x) => x.join(listSeparator);
+  static String appendList(String list, String x) =>
+      list.isEmpty ? x : (list + listSeparator + x);
+
+  static DateTime fromPosixTime(int x) =>
+      DateTime.fromMillisecondsSinceEpoch(x);
+  static int toPosixTime(DateTime x) => x.millisecondsSinceEpoch;
 
   Future<RateLimit> hourRateLimit() async {
     final object = await _fetchJson('stats/rate/hour/limit');
@@ -274,30 +289,35 @@ class CryptoCompare {
       NewsSortOrder sortOrder = NewsSortOrder.latest}) async {
     var params = Map<String, String>();
     if (feeds != null) {
-      params['feeds'] = _ccToList(feeds);
-      if (params['feeds'].length > 400) {
-        throw ArgumentError('feeds length must not exceed 400');
+      params['feeds'] = fromList(feeds);
+      if (params['feeds'].length > maxLatestNewsFeedsLength) {
+        throw ArgumentError(
+            'feeds length must not exceed $maxLatestNewsFeedsLength');
       }
     }
 
     if (categories != null) {
-      params['categories'] = _ccToList(categories);
-      if (params['categories'].length > 400) {
-        throw ArgumentError('categories length must not exceed 400');
+      params['categories'] = fromList(categories);
+      if (params['categories'].length > maxLatestNewsCategoriesLength) {
+        throw ArgumentError(
+            'categories length must not exceed $maxLatestNewsCategoriesLength');
       }
     }
 
     if (excludedCategories != null) {
-      params['excludeCategories'] = _ccToList(excludedCategories);
-      if (params['excludeCategories'].length > 400) {
-        throw ArgumentError('excludeCategories length must not exceed 400');
+      params['excludeCategories'] = fromList(excludedCategories);
+      if (params['excludeCategories'].length >
+          maxLatestNewsExcludedCategoriesLength) {
+        throw ArgumentError(
+            'excludeCategories length must not exceed $maxLatestNewsExcludedCategoriesLength');
       }
     }
 
     if (language != null) {
       params['lang'] = language.toUpperCase();
-      if (params['lang'].length > 4) {
-        throw ArgumentError('lang length must not exceed 4');
+      if (params['lang'].length > maxLatestNewsLanguageLength) {
+        throw ArgumentError(
+            'lang length must not exceed $maxLatestNewsLanguageLength');
       }
     }
 
@@ -323,15 +343,17 @@ class CryptoCompare {
   Future<Map<String, Map<String, num>>> priceMulti(
       List<String> fromSymbols, List<String> toSymbols) async {
     final params = <String, String>{
-      'fsyms': _ccToList(fromSymbols),
-      'tsyms': _ccToList(toSymbols),
+      'fsyms': fromList(fromSymbols),
+      'tsyms': fromList(toSymbols),
     };
 
-    if (params['fsyms'].length > 300) {
-      throw ArgumentError('fsyms length must not exceed 300');
+    if (params['fsyms'].length > maxPriceMultiFromSymbolsLength) {
+      throw ArgumentError(
+          'fsyms length must not exceed $maxPriceMultiFromSymbolsLength');
     }
-    if (params['tsyms'].length > 100) {
-      throw ArgumentError('tsyms length must not exceed 100');
+    if (params['tsyms'].length > maxPriceMultiToSymbolsLength) {
+      throw ArgumentError(
+          'tsyms length must not exceed $maxPriceMultiToSymbolsLength');
     }
 
     final object = await _fetchJson('data/pricemulti', params: params) as Map;
@@ -343,14 +365,16 @@ class CryptoCompare {
       String fromSymbol, List<String> toSymbols) async {
     final params = <String, String>{
       'fsym': fromSymbol,
-      'tsyms': _ccToList(toSymbols),
+      'tsyms': fromList(toSymbols),
     };
 
-    if (params['fsym'].length > 10) {
-      throw ArgumentError('fsym length must not exceed 10');
+    if (params['fsym'].length > maxPricesFromSymbolLength) {
+      throw ArgumentError(
+          'fsym length must not exceed $maxPricesFromSymbolLength');
     }
-    if (params['tsyms'].length > 500) {
-      throw ArgumentError('tsyms length must not exceed 500');
+    if (params['tsyms'].length > maxPricesToSymbolsLength) {
+      throw ArgumentError(
+          'tsyms length must not exceed $maxPricesToSymbolsLength');
     }
 
     final object = await _fetchJson('data/price', params: params) as Map;
@@ -368,11 +392,13 @@ class CryptoCompare {
       'tsym': toSymbol,
     };
 
-    if (params['fsym'].length > 10) {
-      throw ArgumentError('fsym length must not exceed 10');
+    if (params['fsym'].length > maxOhlcvFromSymbolLength) {
+      throw ArgumentError(
+          'fsym length must not exceed $maxOhlcvFromSymbolLength');
     }
-    if (params['tsym'].length > 10) {
-      throw ArgumentError('tsym length must not exceed 10');
+    if (params['tsym'].length > maxOhlcvToSymbolLength) {
+      throw ArgumentError(
+          'tsym length must not exceed $maxOhlcvToSymbolLength');
     }
 
     if (limit != null) {
@@ -466,7 +492,8 @@ class RateLimits {
 
 @JsonSerializable()
 class Coin {
-  @JsonKey(name: 'Id', fromJson: _ccFromInt, toJson: _ccToInt)
+  @JsonKey(
+      name: 'Id', fromJson: CryptoCompare.toInt, toJson: CryptoCompare.fromInt)
   final int id;
   @JsonKey(name: 'Url')
   final String url;
@@ -484,7 +511,10 @@ class Coin {
   final String algorithm;
   @JsonKey(name: 'ProofType')
   final String proofType;
-  @JsonKey(name: 'SortOrder', fromJson: _ccFromInt, toJson: _ccToInt)
+  @JsonKey(
+      name: 'SortOrder',
+      fromJson: CryptoCompare.toInt,
+      toJson: CryptoCompare.fromInt)
   final int sortOrder;
 
   Coin(
@@ -536,8 +566,11 @@ class Coins {
           ))
       .toList();
 
-  static List<Coin> _dataFromJson(Map<String, dynamic> object) =>
-      object.values.map((x) => Coin.fromJson(x)).toList();
+  static List<Coin> _dataFromJson(Map<String, dynamic> object) => object.values
+      .cast<Map<String, dynamic>>()
+      .where((x) => x['IsTrading'] == true)
+      .map((x) => Coin.fromJson(x))
+      .toList();
   static Map<String, dynamic> _dataToJson(List<Coin> data) {
     final entries =
         data.map((x) => MapEntry<String, dynamic>(x.symbol, x.toJson()));
@@ -547,11 +580,13 @@ class Coins {
 
 @JsonSerializable()
 class NewsArticle {
-  @JsonKey(fromJson: _ccFromInt, toJson: _ccToInt)
+  @JsonKey(fromJson: CryptoCompare.toInt, toJson: CryptoCompare.fromInt)
   final int id;
   final String guid;
   @JsonKey(
-      name: 'published_on', fromJson: _ccFromPosixTime, toJson: _ccToPosixTime)
+      name: 'published_on',
+      fromJson: CryptoCompare.fromPosixTime,
+      toJson: CryptoCompare.toPosixTime)
   final DateTime publishedOn;
   @JsonKey(name: 'imageurl')
   final String imageUrl;
@@ -559,9 +594,9 @@ class NewsArticle {
   final String url;
   final String source;
   final String body;
-  @JsonKey(fromJson: _ccFromTags, toJson: _ccToTags)
+  @JsonKey(fromJson: CryptoCompare.toTags, toJson: CryptoCompare.fromTags)
   final List<String> tags;
-  @JsonKey(fromJson: _ccFromTags, toJson: _ccToTags)
+  @JsonKey(fromJson: CryptoCompare.toTags, toJson: CryptoCompare.fromTags)
   final List<String> categories;
   @JsonKey(name: 'lang')
   final String language;
@@ -642,7 +677,8 @@ class NewsCategory {
 
 @JsonSerializable()
 class Ohlcv {
-  @JsonKey(fromJson: _ccFromPosixTime, toJson: _ccToPosixTime)
+  @JsonKey(
+      fromJson: CryptoCompare.fromPosixTime, toJson: CryptoCompare.toPosixTime)
   final DateTime time;
   final num open;
   final num high;

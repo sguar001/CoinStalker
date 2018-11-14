@@ -58,7 +58,7 @@ Map<String, dynamic> _$RateLimitsToJson(RateLimits instance) =>
 
 Coin _$CoinFromJson(Map<String, dynamic> json) {
   return Coin(
-      id: json['Id'] == null ? null : _ccFromInt(json['Id']),
+      id: json['Id'] == null ? null : CryptoCompare.toInt(json['Id']),
       url: json['Url'] as String,
       imageUrl: json['ImageUrl'] as String,
       name: json['Name'] as String,
@@ -67,12 +67,13 @@ Coin _$CoinFromJson(Map<String, dynamic> json) {
       fullName: json['FullName'] as String,
       algorithm: json['Algorithm'] as String,
       proofType: json['ProofType'] as String,
-      sortOrder:
-          json['SortOrder'] == null ? null : _ccFromInt(json['SortOrder']));
+      sortOrder: json['SortOrder'] == null
+          ? null
+          : CryptoCompare.toInt(json['SortOrder']));
 }
 
 Map<String, dynamic> _$CoinToJson(Coin instance) => <String, dynamic>{
-      'Id': instance.id == null ? null : _ccToInt(instance.id),
+      'Id': instance.id == null ? null : CryptoCompare.fromInt(instance.id),
       'Url': instance.url,
       'ImageUrl': instance.imageUrl,
       'Name': instance.name,
@@ -81,8 +82,9 @@ Map<String, dynamic> _$CoinToJson(Coin instance) => <String, dynamic>{
       'FullName': instance.fullName,
       'Algorithm': instance.algorithm,
       'ProofType': instance.proofType,
-      'SortOrder':
-          instance.sortOrder == null ? null : _ccToInt(instance.sortOrder)
+      'SortOrder': instance.sortOrder == null
+          ? null
+          : CryptoCompare.fromInt(instance.sortOrder)
     };
 
 Coins _$CoinsFromJson(Map<String, dynamic> json) {
@@ -102,38 +104,42 @@ Map<String, dynamic> _$CoinsToJson(Coins instance) => <String, dynamic>{
 
 NewsArticle _$NewsArticleFromJson(Map<String, dynamic> json) {
   return NewsArticle(
-      id: json['id'] == null ? null : _ccFromInt(json['id']),
+      id: json['id'] == null ? null : CryptoCompare.toInt(json['id']),
       guid: json['guid'] as String,
       publishedOn: json['published_on'] == null
           ? null
-          : _ccFromPosixTime(json['published_on'] as int),
+          : CryptoCompare.fromPosixTime(json['published_on'] as int),
       imageUrl: json['imageurl'] as String,
       title: json['title'] as String,
       url: json['url'] as String,
       source: json['source'] as String,
       body: json['body'] as String,
-      tags: json['tags'] == null ? null : _ccFromTags(json['tags'] as String),
+      tags: json['tags'] == null
+          ? null
+          : CryptoCompare.toTags(json['tags'] as String),
       categories: json['categories'] == null
           ? null
-          : _ccFromTags(json['categories'] as String),
+          : CryptoCompare.toTags(json['categories'] as String),
       language: json['lang'] as String);
 }
 
 Map<String, dynamic> _$NewsArticleToJson(NewsArticle instance) =>
     <String, dynamic>{
-      'id': instance.id == null ? null : _ccToInt(instance.id),
+      'id': instance.id == null ? null : CryptoCompare.fromInt(instance.id),
       'guid': instance.guid,
       'published_on': instance.publishedOn == null
           ? null
-          : _ccToPosixTime(instance.publishedOn),
+          : CryptoCompare.toPosixTime(instance.publishedOn),
       'imageurl': instance.imageUrl,
       'title': instance.title,
       'url': instance.url,
       'source': instance.source,
       'body': instance.body,
-      'tags': instance.tags == null ? null : _ccToTags(instance.tags),
-      'categories':
-          instance.categories == null ? null : _ccToTags(instance.categories),
+      'tags':
+          instance.tags == null ? null : CryptoCompare.fromTags(instance.tags),
+      'categories': instance.categories == null
+          ? null
+          : CryptoCompare.fromTags(instance.categories),
       'lang': instance.language
     };
 
@@ -185,7 +191,9 @@ Map<String, dynamic> _$NewsCategoryToJson(NewsCategory instance) =>
 
 Ohlcv _$OhlcvFromJson(Map<String, dynamic> json) {
   return Ohlcv(
-      time: json['time'] == null ? null : _ccFromPosixTime(json['time'] as int),
+      time: json['time'] == null
+          ? null
+          : CryptoCompare.fromPosixTime(json['time'] as int),
       open: json['open'] as num,
       high: json['high'] as num,
       low: json['low'] as num,
@@ -195,7 +203,9 @@ Ohlcv _$OhlcvFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> _$OhlcvToJson(Ohlcv instance) => <String, dynamic>{
-      'time': instance.time == null ? null : _ccToPosixTime(instance.time),
+      'time': instance.time == null
+          ? null
+          : CryptoCompare.toPosixTime(instance.time),
       'open': instance.open,
       'high': instance.high,
       'low': instance.low,
