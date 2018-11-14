@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'drawer.dart';
+import 'session.dart';
+import 'database.dart';
 
 /// Widget for displaying the exchange rate calculator to
 /// exchange between two specified currencies
@@ -19,12 +22,28 @@ class _SettingsState extends State<Settings> {
     'JPY',
   ];
 
+  /// Instance of the application session
+  final _session = Session();
+
   /// Default currency to be used in conversions
   /// TODO: need to tie this value to the user!
   String _defaultCurrency = '';
 
   @override
+  void initState() {
+    super.initState();
+
+    _getUserDefault().then((value) {
+      print(_defaultCurrency);
+      setState(() {
+        _defaultCurrency = value;
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print(_defaultCurrency);
     return Scaffold(
         appBar: _buildAppBar(), drawer: UserDrawer(), body: _buildOptions());
   }
@@ -57,15 +76,47 @@ class _SettingsState extends State<Settings> {
                         }).toList(),
                         onChanged: (String currency) {
                           _defaultCurrency = currency;
+                          Firestore.instance.runTransaction((tx) async {
+                            _session.profileRef.updateData(<String, dynamic>{
+                              'displaySymbol': _defaultCurrency,
+                            });
+                          });
                           setState(() {});
                         })),
               ],
             )
           ],
         ),
-        Divider(height: 32.0, color: Colors.black),
+        Divider(height: 16.0, color: Colors.black),
       ],
     );
+  }
+
+  /// Return the users preferred currency from their profile in database
+  Future<String> _getUserDefault() async {
+    String defaultValue = '';
+    print('1');
+    await _buildStreamDefault(_userDefaultCurrency()).then((value) {
+      print('2');
+      defaultValue = value;
+    });
+    print('3');
+    return defaultValue;
+  }
+
+  /// Builds a stream of the user's default currency preference
+  Stream<String> _userDefaultCurrency() =>
+      Profile.buildStream(_session.profileRef)
+          .map((profile) => profile.displaySymbol);
+
+  /// Get the users default currency value from the newly created stream
+  Future<String> _buildStreamDefault(Stream<String> stream) async {
+    String stringValue = '';
+
+    await stream.first.then((value) {
+      stringValue = value;
+    });
+    return stringValue;
   }
 
   /// Build the app bar for Settings Page
