@@ -51,6 +51,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
         body: ListView(
           children: <Widget>[
             Row(
+              /// Row for the title of page
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Column(
@@ -67,7 +68,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
               ],
             ),
             Row(
-              /// Row to hold drop down menu for converting from and user input box
+              /// Row to hold the text fields for user input of amount and currency
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Column(
@@ -77,9 +78,9 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                       width: 250.0,
                       child: TextField(
                         key: _inputKey,
-                        style: Theme.of(context).textTheme.display1,
+                        style: TextStyle(fontSize: 18.0, color: Colors.black),
                         decoration: InputDecoration(
-                          labelStyle: Theme.of(context).textTheme.display1,
+                          labelStyle: TextStyle(fontSize: 18.0),
                           errorText: _showValidationError
                               ? 'Invalid number entered'
                               : null,
@@ -96,10 +97,53 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                       ),
                     ),
                     Container(
+                      /// Row for text field that allows user input for a specific
+                      /// currency or populates based on selection of buttons
+                      padding: const EdgeInsets.all(32.0),
+                      width: 250.0,
+                      child: TextField(
+                        style: TextStyle(fontSize: 18.0, color: Colors.black),
+                        decoration: InputDecoration(
+                          labelStyle: TextStyle(fontSize: 18.0),
+                          errorText: _showValidationError
+                              ? 'Invalid number entered'
+                              : null,
+                          labelText: 'Currency',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5.0),
+                          ),
+                        ),
+                        // Since we only want numerical input, we use a number keyboard. There
+                        // are also other keyboards for dates, emails, phone numbers, etc.
+                        keyboardType: TextInputType.number,
+                        // When input is changed, call update function
+                        onChanged: _updateInputValue,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Column(
+                  children: <Widget>[
+                    Container(
 
-                        /// Build dropdown menu
+                        /// Build Button menu
                         padding: const EdgeInsets.only(top: 32.0),
-                        child: _buildCoins('FROM')),
+//                        child: _buildCoins('FROM')),
+                        child: RaisedButton(
+                            color: Colors.green,
+                            child: Text(
+                              'Currencies',
+                              style: TextStyle(
+                                  fontSize: 14.0, color: Colors.white),
+                            ),
+                            onPressed: () {
+                              print('HELLO WORLD');
+                            }))
                   ],
                 ),
               ],
@@ -166,8 +210,8 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
             return DropdownMenuItem<String>(
                 child: Text(coin.fullName), value: coin.symbol);
           }).toList(),
-          onChanged: (String v) {
-            _fromValue = v;
+          onChanged: (String value) {
+            _fromValue = value;
             setState(() {});
           });
     } else {
