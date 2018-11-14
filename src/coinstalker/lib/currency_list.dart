@@ -9,6 +9,7 @@ import 'database.dart';
 import 'drawer.dart';
 import 'price_widget.dart';
 import 'session.dart';
+import 'sort.dart';
 import 'track_button.dart';
 
 /// Represents the price of a coin at a particular time
@@ -66,6 +67,17 @@ enum _AppBarState {
 
 /// State for the currency list page
 class _CurrencyListPageState extends State<CurrencyListPage> {
+  /// Initial sorting for the coins list
+  static final _initialSort = Sort<MapEntry<Coin, _CoinPrice>>(
+    [
+      SortProperty('Symbol', (x, y) => x.key.symbol.compareTo(y.key.symbol),
+          order: SortOrder.ascending),
+      SortProperty('Name', (x, y) => x.key.fullName.compareTo(y.key.fullName)),
+      SortProperty(
+          'Price', (x, y) => x.value.quotePrice.compareTo(y.value.quotePrice)),
+    ],
+  );
+
   /// Instance of the application session
   final _session = Session();
 
@@ -85,6 +97,9 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
 
   /// The future for the list of coins
   Future<Map<Coin, _CoinPrice>> _coins;
+
+  /// Sorting to apply to the coin list
+  var _sort = Sort<MapEntry<Coin, _CoinPrice>>.from(_initialSort);
 
   /// Called when this object is inserted into the tree
   /// Requests the list of coins and installs a listener on the search filter
@@ -221,8 +236,16 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   }
 
   /// Called when the sort button is pressed
-  void _sortPressed() {
-    // TODO
+  void _sortPressed() async {
+    final sort = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => SortDialog(
+                  title: 'Sort currencies',
+                  initialSort: _initialSort,
+                  sort: _sort,
+                )));
+    if (sort != null) setState(() => _sort = sort);
   }
 
   /// Creates a list tile widget for an individual coin
@@ -268,7 +291,10 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   /// Create a list view widget for a list of coins
   /// If the search filter is not empty, only matching coins are included
   Widget _buildCoinsListView(List<Coin> allCoins) => futureWidget(
-      future: _coins?.then((m) => m.entries.toList()),
+      future: _coins?.then((m) => m.entries.toList())?.then((e) {
+        e.sort(_sort.comparator());
+        return e;
+      }),
       builder: (context, List<MapEntry<Coin, _CoinPrice>> allEntries) {
         final entries =
             allEntries.where((entry) => allCoins.contains(entry.key)).toList();
