@@ -20,84 +20,65 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
   /// Instance of the application session
   final _session = Session();
 
-  /// Get users default currency preference to display initially
-  final String userPreferrence = '';
-
-  /// Coin type to be converted from
-  String _fromValue;
-
-  /// Coin type to convert to
-  String _toValue;
-
-  /// Amount to exchange
-  double _inputValue;
-
-  /// Coin/currency to exchange
-  Coin _userInput;
+  /// Key for the entire credentials form
+  final _formKey = GlobalKey<FormState>();
 
   /// Controller for text field for FROM
-  TextEditingController _fromController = TextEditingController();
+  final _fromController = TextEditingController();
 
   /// Controller for text field for TO
-  TextEditingController _toController = TextEditingController();
+  final _toController = TextEditingController();
 
   /// Controller for text field for AMOUNT
-  TextEditingController _amountController = TextEditingController();
+  final _amountController = TextEditingController();
 
   /// Value that has been converted
   String _convertedValue = '';
 
-  /// Add flags for whether to show error UI
-  bool _showErrorUI = false;
-  bool _showValidationError = false;
-
-  /// Pass this into the TextField so that the input value persists!
-  final _inputKey = GlobalKey(debugLabel: 'inputText');
-
   /// Build the calculator which consists of two dropdown menus for user to select
   /// currencies to convert
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: _buildAppBar(),
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: Text('Exchange Rate Calculator'),
+          centerTitle: true,
+        ),
         drawer: UserDrawer(),
-        body: ListView(
-          children: <Widget>[
-            Row(
-              /// Row for the title of page
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    Padding(
-                      padding: EdgeInsets.only(top: 32.0),
-                    ),
-                    Text(
-                      'Select the currencies you\'d like to convert',
-                      style: TextStyle(fontSize: 16.0),
-                    )
-                  ],
-                )
-              ],
-            ),
-            Row(
-              /// Row to hold the text fields for user input of amount and currency
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    Container(
-                      padding: const EdgeInsets.only(top: 32.0),
-                      width: 250.0,
-                      child: TextField(
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            children: <Widget>[
+              Row(
+                /// Row for the title of page
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Column(
+                    children: <Widget>[
+                      Padding(
+                        padding: EdgeInsets.only(top: 32.0),
+                      ),
+                      Text(
+                        'Select the currencies you\'d like to convert',
+                        style: TextStyle(fontSize: 16.0),
+                      )
+                    ],
+                  )
+                ],
+              ),
+              Row(
+                /// Row to hold the text fields for user input of amount and currency
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Column(
+                    children: <Widget>[
+                      Container(
+                        padding: const EdgeInsets.only(top: 32.0),
+                        width: 250.0,
+                        child: TextFormField(
                           controller: _amountController,
-                          key: _inputKey,
                           style: TextStyle(fontSize: 18.0, color: Colors.black),
                           decoration: InputDecoration(
                             labelStyle: TextStyle(fontSize: 18.0),
-                            errorText: _showValidationError
-                                ? 'Invalid number entered'
-                                : null,
                             labelText: 'Amount',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(5.0),
@@ -106,368 +87,297 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                           // Since we only want numerical input, we use a number keyboard. There
                           // are also other keyboards for dates, emails, phone numbers, etc.
                           keyboardType: TextInputType.number,
-                          // When input is changed, call update function
-//                        onSubmitted: _updateInputValue,
-                          onSubmitted: (userInput) {
-                            setState(() {
-                              _amountController.text = userInput;
-                            });
-                          }),
-                    ),
-                    Container(
-                      /// Row for text field that allows user input for a specific
-                      /// currency or populates based on selection of buttons
-                      padding: const EdgeInsets.all(16.0),
-                      width: 250.0,
-                      child: TextField(
-                        controller: _fromController,
-                        style: TextStyle(fontSize: 18.0, color: Colors.black),
-                        decoration: InputDecoration(
-                          labelStyle: TextStyle(fontSize: 18.0),
-                          errorText: _showValidationError
-                              ? 'Invalid number entered'
-                              : null,
-                          labelText: 'Currency FROM',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5.0),
-                          ),
+                          onEditingComplete: _updateConversionValue,
+                          validator: _validateAmount,
+                          autovalidate: true,
                         ),
-                        // Since we only want numerical input, we use a number keyboard. There
-                        // are also other keyboards for dates, emails, phone numbers, etc.
-                        keyboardType: TextInputType.text,
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    Container(
-
-                        /// Build Button menu for selecting a currency
-//                        child: _buildCoins('FROM')),
-                        child: RaisedButton(
-                            color: Colors.green,
-                            child: Text(
-                              'Currencies',
-                              style: TextStyle(
-                                  fontSize: 14.0, color: Colors.white),
-                            ),
-                            onPressed: () async {
-                              final coin = await Navigator.push<Coin>(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => CurrencyListPage(
-                                            onCoinPressed: (coin) =>
-                                                Navigator.pop(context, coin),
-                                            asDialog: true,
-                                          )));
-                              setState(() {
-                                _fromController.text = coin.symbol;
-                                _fromValue = coin.symbol;
-                                if (_performConversion()) {
-                                  _updateInputValue(_amountController.text);
-                                } else {
-                                  _convertedValue = '';
-                                }
-                              });
-                            })),
-                  ],
-                ),
-                Column(
-                  children: <Widget>[
-                    Container(
-
-                        /// Build Button menu for selecting a FIAT symbol
-                        padding: const EdgeInsets.only(left: 32.0),
-                        child: RaisedButton(
-                            color: Colors.green,
-                            child: Text(
-                              'FIAT Symbol',
-                              style: TextStyle(
-                                  fontSize: 14.0, color: Colors.white),
-                            ),
-                            onPressed: () async {
-                              final symbol = await Navigator.push<String>(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => CurrencyListPage(
-                                            onFiatPressed: (symbol) =>
-                                                Navigator.pop(context, symbol),
-                                            asDialog: true,
-                                            asTabView: false,
-                                          )));
-                              setState(() {
-                                _fromController.text = symbol;
-                                _fromValue = symbol;
-                                if (_performConversion()) {
-                                  _updateInputValue(_amountController.text);
-                                } else {
-                                  _convertedValue = '';
-                                }
-                              });
-                            }))
-                  ],
-                )
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    RotatedBox(
-                      quarterTurns: 1,
-                      child: Container(
+                      Container(
+                        /// Row for text field that allows user input for a specific
+                        /// currency or populates based on selection of buttons
                         padding: const EdgeInsets.all(16.0),
-                        child: Icon(
-                          Icons.compare_arrows,
-                          color: Colors.green,
-                          size: 32.0,
+                        width: 250.0,
+                        child: TextFormField(
+                          controller: _fromController,
+                          style: TextStyle(fontSize: 18.0, color: Colors.black),
+                          decoration: InputDecoration(
+                            labelStyle: TextStyle(fontSize: 18.0),
+                            labelText: 'Currency FROM',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                            ),
+                          ),
+                          // Since we only want numerical input, we use a number keyboard. There
+                          // are also other keyboards for dates, emails, phone numbers, etc.
+                          keyboardType: TextInputType.text,
+                          onEditingComplete: _updateConversionValue,
+                          validator: _validateSymbol,
+                          autovalidate: true,
                         ),
                       ),
-                    )
-                  ],
-                ),
-              ],
-            ),
-            Row(
-              /// Row to hold drop down menu for converting to
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Column(
-                  children: <Widget>[
-                    Container(
-                      /// Row for text field that allows user input for a specific
-                      /// currency or populates based on selection of buttons
-                      padding: const EdgeInsets.all(16.0),
-                      width: 250.0,
-                      child: TextField(
-                        controller: _toController,
-                        style: TextStyle(fontSize: 18.0, color: Colors.black),
-                        decoration: InputDecoration(
-                          labelStyle: TextStyle(fontSize: 18.0),
-                          errorText: _showValidationError
-                              ? 'Invalid number entered'
-                              : null,
-                          labelText: 'Currency TO',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(5.0),
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Column(
+                    children: <Widget>[
+                      Container(
+
+                          /// Build Button menu for selecting a currency
+                          child: RaisedButton(
+                              color: Colors.green,
+                              child: Text(
+                                'Crypto',
+                                style: TextStyle(
+                                    fontSize: 14.0, color: Colors.white),
+                              ),
+                              onPressed: () async {
+                                final coin = await Navigator.push<Coin>(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => CurrencyListPage(
+                                              onCoinPressed: (coin) =>
+                                                  Navigator.pop(context, coin),
+                                              asDialog: true,
+                                            )));
+                                setState(
+                                    () => _fromController.text = coin.symbol);
+                                _updateConversionValue();
+                              })),
+                    ],
+                  ),
+                  Column(
+                    children: <Widget>[
+                      Container(
+
+                          /// Build Button menu for selecting a FIAT symbol
+                          padding: const EdgeInsets.only(left: 32.0),
+                          child: RaisedButton(
+                              color: Colors.green,
+                              child: Text(
+                                'Fiat',
+                                style: TextStyle(
+                                    fontSize: 14.0, color: Colors.white),
+                              ),
+                              onPressed: () async {
+                                final symbol = await Navigator.push<String>(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => CurrencyListPage(
+                                              onFiatPressed: (symbol) =>
+                                                  Navigator.pop(
+                                                      context, symbol),
+                                              asDialog: true,
+                                              asTabView: false,
+                                            )));
+                                setState(() => _fromController.text = symbol);
+                                _updateConversionValue();
+                              }))
+                    ],
+                  )
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Column(
+                    children: <Widget>[
+                      RotatedBox(
+                        quarterTurns: 1,
+                        child: Container(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Icon(
+                            Icons.compare_arrows,
+                            color: Colors.green,
+                            size: 32.0,
                           ),
                         ),
-                        // Since we only want numerical input, we use a number keyboard. There
-                        // are also other keyboards for dates, emails, phone numbers, etc.
-                        keyboardType: TextInputType.text,
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Column(
-                          children: <Widget>[
-                            Container(
-
-                                /// Build Button menu for selecting a currency
-//                        child: _buildCoins('FROM')),
-                                child: RaisedButton(
-                                    color: Colors.green,
-                                    child: Text(
-                                      'Currencies',
-                                      style: TextStyle(
-                                          fontSize: 14.0, color: Colors.white),
-                                    ),
-                                    onPressed: () async {
-                                      final coin = await Navigator.push<Coin>(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) => CurrencyListPage(
-                                                    onCoinPressed: (coin) =>
-                                                        Navigator.pop(
-                                                            context, coin),
-                                                    asDialog: true,
-                                                  )));
-                                      setState(() {
-                                        _toController.text = coin.symbol;
-                                        _toValue = coin.symbol;
-                                        if (_performConversion()) {
-                                          _updateInputValue(
-                                              _amountController.text);
-                                        } else {
-                                          _convertedValue = '';
-                                        }
-                                      });
-                                    })),
-                          ],
-                        ),
-                        Column(
-                          children: <Widget>[
-                            Container(
-
-                                /// Build Button menu for selecting a FIAT symbol
-                                padding: const EdgeInsets.only(left: 32.0),
-                                child: RaisedButton(
-                                    color: Colors.green,
-                                    child: Text(
-                                      'FIAT Symbol',
-                                      style: TextStyle(
-                                          fontSize: 14.0, color: Colors.white),
-                                    ),
-                                    onPressed: () async {
-                                      final symbol = await Navigator.push<
-                                              String>(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) => CurrencyListPage(
-                                                    onFiatPressed: (symbol) =>
-                                                        Navigator.pop(
-                                                            context, symbol),
-                                                    asDialog: true,
-                                                    asTabView: false,
-                                                  )));
-
-                                      setState(() {
-                                        _toController.text = symbol;
-                                        _toValue = symbol;
-                                        if (_performConversion()) {
-                                          _updateInputValue(
-                                              _amountController.text);
-                                        } else {
-                                          _convertedValue = '';
-                                        }
-                                      });
-                                    }))
-                          ],
-                        )
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.only(top: 32.0),
-                      width: 250.0,
-                      child: InputDecorator(
-                          isFocused: false,
-                          child: Text(_convertedValue,
-                              style: TextStyle(
-                                  fontSize: 18.0, color: Colors.black)),
+                      )
+                    ],
+                  ),
+                ],
+              ),
+              Row(
+                /// Row to hold drop down menu for converting to
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Column(
+                    children: <Widget>[
+                      Container(
+                        /// Row for text field that allows user input for a specific
+                        /// currency or populates based on selection of buttons
+                        padding: const EdgeInsets.all(16.0),
+                        width: 250.0,
+                        child: TextFormField(
+                          controller: _toController,
+                          style: TextStyle(fontSize: 18.0, color: Colors.black),
                           decoration: InputDecoration(
-                              labelText: 'Output',
-                              labelStyle: TextStyle(fontSize: 18.0),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(5.0)))),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ));
+                            labelStyle: TextStyle(fontSize: 18.0),
+                            labelText: 'Currency TO',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(5.0),
+                            ),
+                          ),
+                          // Since we only want numerical input, we use a number keyboard. There
+                          // are also other keyboards for dates, emails, phone numbers, etc.
+                          keyboardType: TextInputType.text,
+                          onEditingComplete: _updateConversionValue,
+                          validator: _validateSymbol,
+                          autovalidate: true,
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Column(
+                            children: <Widget>[
+                              Container(
+
+                                  /// Build Button menu for selecting a currency
+                                  child: RaisedButton(
+                                      color: Colors.green,
+                                      child: Text(
+                                        'Crypto',
+                                        style: TextStyle(
+                                            fontSize: 14.0,
+                                            color: Colors.white),
+                                      ),
+                                      onPressed: () async {
+                                        final coin = await Navigator.push<Coin>(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (_) =>
+                                                    CurrencyListPage(
+                                                      onCoinPressed: (coin) =>
+                                                          Navigator.pop(
+                                                              context, coin),
+                                                      asDialog: true,
+                                                    )));
+                                        setState(() =>
+                                            _toController.text = coin.symbol);
+                                        _updateConversionValue();
+                                      })),
+                            ],
+                          ),
+                          Column(
+                            children: <Widget>[
+                              Container(
+
+                                  /// Build Button menu for selecting a FIAT symbol
+                                  padding: const EdgeInsets.only(left: 32.0),
+                                  child: RaisedButton(
+                                      color: Colors.green,
+                                      child: Text(
+                                        'Fiat',
+                                        style: TextStyle(
+                                            fontSize: 14.0,
+                                            color: Colors.white),
+                                      ),
+                                      onPressed: () async {
+                                        final symbol =
+                                            await Navigator.push<String>(
+                                                context,
+                                                MaterialPageRoute(
+                                                    builder:
+                                                        (_) => CurrencyListPage(
+                                                              onFiatPressed: (symbol) =>
+                                                                  Navigator.pop(
+                                                                      context,
+                                                                      symbol),
+                                                              asDialog: true,
+                                                              asTabView: false,
+                                                            )));
+                                        setState(() =>
+                                            _fromController.text = symbol);
+                                        _updateConversionValue();
+                                      }))
+                            ],
+                          )
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.only(top: 32.0),
+                        width: 250.0,
+                        child: InputDecorator(
+                            isFocused: false,
+                            child: Text(_convertedValue,
+                                style: TextStyle(
+                                    fontSize: 18.0, color: Colors.black)),
+                            decoration: InputDecoration(
+                                labelText: 'Output',
+                                labelStyle: TextStyle(fontSize: 18.0),
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(5.0)))),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
+  /// Validates the form and saving its state when valid
+  bool _validate() {
+    final form = _formKey.currentState;
+    if (form.validate()) {
+      form.save();
+      return true;
+    }
+    return false;
   }
 
-  /// Creates a future builder widget for a list of coins
-  Widget _buildCoins(String op) {
-    if (op == 'FROM') {
-      return DropdownButton(
-          hint: _fromValue == null
-              ? Text('Select a Value to Convert From')
-              : Text(_fromValue),
-          items: _session.coins.map((Coin coin) {
-            return DropdownMenuItem<String>(
-                child: Text(coin.fullName), value: coin.symbol);
-          }).toList(),
-          onChanged: (String value) {
-            _fromValue = value;
-            setState(() {});
-          });
-    } else {
-      return DropdownButton(
-          hint: _toValue == null
-              ? Text('Select a Value to Convert To')
-              : Text(_toValue),
-          items: _session.coins.map((Coin coin) {
-            return DropdownMenuItem<String>(
-                child: Text(coin.fullName), value: coin.symbol);
-          }).toList(),
-          onChanged: (String value) {
-            _toValue = value;
-            setState(() {});
-          });
+  /// Validate the input amount
+  String _validateAmount(String value) {
+    if (value == null || value.isEmpty) return 'Required';
+
+    // Encapsulate in a try block in case of non-numerical input
+    try {
+      final valueDouble = double.parse(value);
+      return null;
+    } catch (error) {
+      print('Error: $error');
+      return 'Must be a number';
     }
   }
 
-  /// function to return a list of <String> with all the names of the given
-  /// List of <Coin>
-  List<String> extractNames(List<Coin> coins) {
-    List<String> names = [];
-
-    for (Coin coin in coins) {
-      names.add(coin.fullName);
+  /// Validate a symbol field
+  String _validateSymbol(String value) {
+    if (value == null || value.isEmpty) return 'Required';
+    if (_session.coins.where((x) => x.symbol == value.toUpperCase()).length ==
+        1) {
+      return null;
     }
-
-    return names;
+    if (_session.fiatSymbols.contains(value.toUpperCase())) return null;
+    return 'Unrecognized symbol';
   }
 
-  /// Build the app bar for Exchange Rate Calculator Page
-  Widget _buildAppBar() {
-    return AppBar(
-      title: Text('Exchange Currencies'),
-      centerTitle: true,
-    );
-  }
+  /// Perform the conversion
+  void _updateConversionValue() async {
+    if (!_validate()) return;
 
-  /// Take in the inputted value to be converted (from string to double)
-  void _updateInputValue(String input) {
-    setState(() {
-      if (input == null || input.isEmpty) {
-        _convertedValue = '';
-      } else {
-        // Encapsulate in a try block in case of non-numerical input
-        try {
-          final inputDouble = double.parse(input);
-          _showValidationError = false;
-          _inputValue = inputDouble;
-
-          // update the converted value based on the inputted value
-          _updateConversionValue();
-        } on Exception catch (error) {
-          print('Error: $error');
-          _showValidationError = true;
+    try {
+      final singlePrice =
+          await _cryptoCompare.price(_fromController.text, _toController.text);
+      final price = double.parse(_amountController.text) * singlePrice;
+      setState(() {
+        if ('$price'.length > 4) {
+          _convertedValue = price.toStringAsPrecision(7);
+        } else {
+          _convertedValue = price.toString();
         }
-      }
-    });
-  }
-
-  /// Convert the provided fromValue to toValue times the provided user input
-  Future<void> _updateConversionValue() async {
-    if (_fromValue != null && _toValue != null) {
-      try {
-        final _singlePrice = await _cryptoCompare.price(_fromValue, _toValue);
-        final _price = _inputValue * _singlePrice;
-        if (_price != null) {
-          setState(() {
-            if (_price.toString().length > 4) {
-              _convertedValue = _price.toStringAsPrecision(7);
-            } else {
-              _convertedValue = _price.toString();
-            }
-          });
-        }
-      } on Exception catch (error) {
-        setState(() {
-          _showErrorUI = true;
-          _showDialog(error.toString());
-        });
-      }
-    } else {
-      _showDialog('To and From values cannot be empty! '
-          'Please select values to convert from the dropdowns.');
+      });
+    } catch (error) {
+      _showErrorDialog('$error');
     }
   }
 
   /// Show the error dialog to user
-  void _showDialog(String errorMessage) {
+  void _showErrorDialog(String errorMessage) {
     showDialog(
         context: context,
         builder: (BuildContext context) {
@@ -485,17 +395,5 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
             ],
           );
         });
-  }
-
-  bool _performConversion() {
-    if (_toValue != null &&
-        _fromValue != null &&
-        _toController.text != '' &&
-        _fromController.text != '' &&
-        _amountController.text != '') {
-      return true;
-    } else {
-      return false;
-    }
   }
 }
