@@ -49,7 +49,10 @@ class CurrencyListPage extends StatefulWidget {
 
   /// Constructs this instance
   CurrencyListPage(
-      {this.onCoinPressed, this.onFiatPressed, this.asDialog = false, this.asTabView = true});
+      {this.onCoinPressed,
+      this.onFiatPressed,
+      this.asDialog = false,
+      this.asTabView = true});
 
   /// Creates the mutable state for this widget
   @override
@@ -288,6 +291,14 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
     return allCoins.where(filter).toList();
   }
 
+  /// Filters a list of FIAT symbols to only include symbols whose names contain the
+  /// search filter text
+  Set<String> _filterSymbols(Set<String> allSymbols) {
+    final pattern = _searchFilter.text.toLowerCase();
+    final filter = (String symbol) => symbol.toLowerCase().contains(pattern);
+    return allSymbols.where(filter).toSet();
+  }
+
   /// Create a list view widget for a list of coins
   /// If the search filter is not empty, only matching coins are included
   Widget _buildCoinsListView(List<Coin> allCoins) => futureWidget(
@@ -324,13 +335,15 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   Widget _buildAllCoins() => _buildCoinsListView(_session.coins);
 
   Widget _buildFiatSymbolsList() {
+    final entries = _session.fiatSymbols;
+    final symbolsList =
+        _appBarState == _AppBarState.search ? _filterSymbols(entries) : entries;
     return ListView.builder(
-      itemCount: _session.fiatSymbols.length,
+      itemCount: symbolsList.length,
       itemBuilder: (context, index) {
         return ListTile(
-          title: Text(_session.fiatSymbols.elementAt(index)),
-          onTap: () =>
-              (widget.onFiatPressed)(_session.fiatSymbols.elementAt(index)),
+          title: Text(symbolsList.elementAt(index)),
+          onTap: () => (widget.onFiatPressed)(symbolsList.elementAt(index)),
         );
       },
     );

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'currency_list.dart';
 import 'database.dart';
 import 'drawer.dart';
 import 'session.dart';
@@ -14,14 +15,6 @@ class Settings extends StatefulWidget {
 }
 
 class _SettingsState extends State<Settings> {
-  /// list of available currency defaults for user
-//  List<String> _availableCurrencies = [
-//    'USD',
-//    'GBP',
-//    'EUR',
-//    'JPY',
-//  ];
-
   /// Instance of the application session
   final _session = Session();
 
@@ -59,30 +52,60 @@ class _SettingsState extends State<Settings> {
             Column(
               children: <Widget>[
                 Container(
-                    padding: const EdgeInsets.all(32.0),
+                    padding: const EdgeInsets.all(24.0),
                     child: Text(
-                      'Default Currency',
+                      'Default Currency: $_defaultCurrency',
                       style: TextStyle(fontSize: 18.0),
                     )),
                 Container(
-                    padding: const EdgeInsets.all(8.0),
-                    child: DropdownButton(
-                        hint: _defaultCurrency == ''
-                            ? Text('Select the default currency')
-                            : Text(_defaultCurrency),
-                        items: _session.fiatSymbols.map((String currencyType) {
-                          return DropdownMenuItem<String>(
-                              child: Text(currencyType), value: currencyType);
-                        }).toList(),
-                        onChanged: (String currency) {
-                          _defaultCurrency = currency;
-                          Firestore.instance.runTransaction((tx) async {
-                            _session.profileRef.updateData(<String, dynamic>{
-                              'displaySymbol': _defaultCurrency,
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+
+                      /// Build Button menu for selecting a default FIAT symbol
+                      padding: const EdgeInsets.all(4.0),
+                      child: RaisedButton(
+                          color: Colors.green,
+                          child: Text(
+                            'Select Default Currency',
+                            style:
+                                TextStyle(fontSize: 14.0, color: Colors.white),
+                          ),
+                          onPressed: () async {
+                            final symbol = await Navigator.push<String>(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => CurrencyListPage(
+                                          onFiatPressed: (symbol) =>
+                                              Navigator.pop(context, symbol),
+                                          asDialog: true,
+                                          asTabView: false,
+                                        )));
+                            _defaultCurrency = symbol;
+                            Firestore.instance.runTransaction((tx) async {
+                              _session.profileRef.updateData(<String, dynamic>{
+                                'displaySymbol': _defaultCurrency,
+                              });
                             });
-                          });
-                          setState(() {});
-                        })),
+//                            setState(() {});
+                          })),
+//                    child: DropdownButton(
+//                        hint: _defaultCurrency == ''
+//                            ? Text('Select the default currency')
+//                            : Text(_defaultCurrency),
+//                        items: _session.fiatSymbols.map((String currencyType) {
+//                          return DropdownMenuItem<String>(
+//                              child: Text(currencyType), value: currencyType);
+//                        }).toList(),
+//                        onChanged: (String currency) {
+//                          _defaultCurrency = currency;
+//                          Firestore.instance.runTransaction((tx) async {
+//                            _session.profileRef.updateData(<String, dynamic>{
+//                              'displaySymbol': _defaultCurrency,
+//                            });
+//                          });
+//                          setState(() {});
+//                        })
+                ),
               ],
             )
           ],
