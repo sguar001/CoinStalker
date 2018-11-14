@@ -26,18 +26,29 @@ class _CoinPrice {
 /// Type of the delegate function called when a coin is pressed
 typedef void CoinPressedDelegate(Coin coin);
 
+/// Type of the delegate function called when a FIAT symbol is pressed
+typedef void FiatPressedDelegate(String symbol);
+
 /// Widget for displaying, searching, and sorting the list of currencies
 /// This class is stateful because it must update as the user searches and sorts
 class CurrencyListPage extends StatefulWidget {
   /// Function to call when a coin is pressed
   final CoinPressedDelegate onCoinPressed;
 
+  /// Function to call when a FIAT symbol is pressed
+  final FiatPressedDelegate onFiatPressed;
+
   /// Whether the page should display as a dialog instead of a full page
   /// When used as a dialog, there will be no drawer in the app bar
   final bool asDialog;
 
+  /// Whether the page should display as a tabbed view (coins/tracked)
+  /// or as fiat symbols
+  final bool asTabView;
+
   /// Constructs this instance
-  CurrencyListPage({this.onCoinPressed, this.asDialog = false});
+  CurrencyListPage(
+      {this.onCoinPressed, this.onFiatPressed, this.asDialog = false, this.asTabView = true});
 
   /// Creates the mutable state for this widget
   @override
@@ -89,7 +100,9 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
 
   /// Describes the part of the user interface represented by this widget
   @override
-  Widget build(BuildContext context) => DefaultTabController(
+  Widget build(BuildContext context) {
+    if (widget.asTabView) {
+      return DefaultTabController(
         length: 3,
         child: Scaffold(
           body: TabBarView(
@@ -116,6 +129,18 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
           drawer: widget.asDialog ? null : UserDrawer(),
         ),
       );
+    } else if (!widget.asTabView) {
+      return Scaffold(
+        body: _buildFiatSymbolsList(),
+        appBar: AppBar(
+          centerTitle: true,
+          title: _buildAppBarTitle(),
+          actions: _buildAppBarActions(),
+        ),
+        drawer: widget.asDialog ? null : UserDrawer(),
+      );
+    }
+  }
 
   /// Creates a title widget for the app bar appropriate for its state
   Widget _buildAppBarTitle() {
@@ -271,6 +296,19 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
 
   /// Creates a widget for the list of coins
   Widget _buildAllCoins() => _buildCoinsListView(_session.coins);
+
+  Widget _buildFiatSymbolsList() {
+    return ListView.builder(
+      itemCount: _session.fiatSymbols.length,
+      itemBuilder: (context, index) {
+        return ListTile(
+          title: Text(_session.fiatSymbols.elementAt(index)),
+          onTap: () =>
+              (widget.onFiatPressed)(_session.fiatSymbols.elementAt(index)),
+        );
+      },
+    );
+  }
 
   /// Builds a stream of the user's tracked coins
   Stream<List<Coin>> _trackedCoins() =>

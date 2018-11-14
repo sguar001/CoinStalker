@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'cryptocompare.dart';
+import 'currency_list.dart';
 import 'drawer.dart';
 import 'session.dart';
 
@@ -28,8 +29,14 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
   /// Coin type to convert to
   String _toValue;
 
-  /// Value to exchange
+  /// Amount to exchange
   double _inputValue;
+
+  /// Coin/currency to exchange
+  Coin _userInput;
+
+  /// Controller for text field
+  TextEditingController _controller = TextEditingController();
 
   /// Value that has been converted
   String _convertedValue = '';
@@ -93,7 +100,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                         // are also other keyboards for dates, emails, phone numbers, etc.
                         keyboardType: TextInputType.number,
                         // When input is changed, call update function
-                        onChanged: _updateInputValue,
+                        onSubmitted: _updateInputValue,
                       ),
                     ),
                     Container(
@@ -102,6 +109,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                       padding: const EdgeInsets.all(32.0),
                       width: 250.0,
                       child: TextField(
+                        controller: _controller,
                         style: TextStyle(fontSize: 18.0, color: Colors.black),
                         decoration: InputDecoration(
                           labelStyle: TextStyle(fontSize: 18.0),
@@ -115,9 +123,9 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                         ),
                         // Since we only want numerical input, we use a number keyboard. There
                         // are also other keyboards for dates, emails, phone numbers, etc.
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.text,
                         // When input is changed, call update function
-                        onChanged: _updateInputValue,
+//                        onSubmitted: _updateInputValue,
                       ),
                     ),
                   ],
@@ -131,8 +139,8 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                   children: <Widget>[
                     Container(
 
-                        /// Build Button menu
-                        padding: const EdgeInsets.only(top: 32.0),
+                        /// Build Button menu for selecting a currency
+                        padding: const EdgeInsets.only(top: 16.0),
 //                        child: _buildCoins('FROM')),
                         child: RaisedButton(
                             color: Colors.green,
@@ -141,11 +149,48 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                               style: TextStyle(
                                   fontSize: 14.0, color: Colors.white),
                             ),
-                            onPressed: () {
-                              print('HELLO WORLD');
-                            }))
+                            onPressed: () async {
+                              final coin = await Navigator.push<Coin>(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => CurrencyListPage(
+                                            onCoinPressed: (coin) =>
+                                                Navigator.pop(context, coin),
+                                            asDialog: true,
+                                          )));
+                              print(coin.symbol);
+                              _controller.text = coin.symbol;
+                            })),
                   ],
                 ),
+                Column(
+                  children: <Widget>[
+                    Container(
+
+                        /// Build Button menu for selecting a FIAT symbol
+                        padding: const EdgeInsets.only(top: 16.0, left: 32.0),
+                        child: RaisedButton(
+                            color: Colors.green,
+                            child: Text(
+                              'FIAT Symbol',
+                              style: TextStyle(
+                                  fontSize: 14.0, color: Colors.white),
+                            ),
+                            onPressed: () async {
+                              final symbol = await Navigator.push<String>(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => CurrencyListPage(
+                                            onFiatPressed: (symbol) =>
+                                                Navigator.pop(context, symbol),
+                                            asDialog: true,
+                                            asTabView: false,
+                                          )));
+                              print(symbol);
+                              _controller.text = symbol;
+                            }))
+                  ],
+                )
               ],
             ),
             Row(
@@ -174,9 +219,6 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
               children: <Widget>[
                 Column(
                   children: <Widget>[
-                    Container(
-                        padding: const EdgeInsets.only(top: 32.0),
-                        child: _buildCoins('TO')),
                     Container(
                       padding: const EdgeInsets.only(top: 64.0),
                       width: 250.0,

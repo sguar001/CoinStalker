@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 
+import 'database.dart';
 import 'drawer.dart';
 import 'session.dart';
-import 'database.dart';
 
 /// Widget for displaying the exchange rate calculator to
 /// exchange between two specified currencies
@@ -15,12 +15,12 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   /// list of available currency defaults for user
-  List<String> _availableCurrencies = [
-    'USD',
-    'GBP',
-    'EUR',
-    'JPY',
-  ];
+//  List<String> _availableCurrencies = [
+//    'USD',
+//    'GBP',
+//    'EUR',
+//    'JPY',
+//  ];
 
   /// Instance of the application session
   final _session = Session();
@@ -70,7 +70,7 @@ class _SettingsState extends State<Settings> {
                         hint: _defaultCurrency == ''
                             ? Text('Select the default currency')
                             : Text(_defaultCurrency),
-                        items: _availableCurrencies.map((String currencyType) {
+                        items: _session.fiatSymbols.map((String currencyType) {
                           return DropdownMenuItem<String>(
                               child: Text(currencyType), value: currencyType);
                         }).toList(),
