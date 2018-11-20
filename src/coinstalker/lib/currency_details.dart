@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:share/share.dart';
 
 import 'async_widget.dart';
 import 'cryptocompare.dart';
@@ -122,7 +124,29 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
           ],
         ),
         drawer: UserDrawer(),
+        floatingActionButton: FloatingActionButton(
+          child: Icon(Icons.share),
+          onPressed: _shareCoin,
+          tooltip: 'Share details about this coin',
+        ),
       );
+
+  /// send a message with the name of the currency, its current value, and
+  /// a link that opens the Coinstalker app on that currency page.
+  void _shareCoin() async {
+    var price = '';
+
+    /// Get the current price of the coin, converted to the users default currency preference
+    await getCurrentPrice(widget.coin.symbol, exact: true).then((value) {
+      price = value;
+    });
+
+    var coinName = widget.coin.coinName;
+    var msg = 'Hey, check out the coin: $coinName.\n'
+        'It\'s currently priced at: $price!\n'
+        'DEEP LINK';
+    Share.share(msg);
+  }
 
   /// Creates a row for a property of the coin
   Widget _buildPropertyRow({String name, Widget value}) => Padding(

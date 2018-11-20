@@ -299,7 +299,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.only(top: 32.0),
+                        padding: const EdgeInsets.only(top: 32.0, bottom: 32.0),
                         width: 250.0,
                         child: InputDecorator(
                             isFocused: false,

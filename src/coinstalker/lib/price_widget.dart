@@ -7,7 +7,7 @@ import 'database.dart';
 import 'session.dart';
 
 /// Builds a widget displaying the given price in the given display symbol
-Widget priceWidget(String toSymbol, num price, {bool exact = false}) {
+Text priceWidget(String toSymbol, num price, {bool exact = false}) {
   final formatted =
       NumberFormat.simpleCurrency(locale: Intl.systemLocale, name: toSymbol)
           .format(price);
@@ -28,3 +28,24 @@ Widget currentPriceWidget(String fromSymbol, {bool exact = false}) =>
                 priceWidget(toSymbol, price, exact: exact),
           ),
     );
+
+/// Return a future of type string that contains the current currency value,
+/// converted from the users currency preference
+Future<String> getCurrentPrice(String fromSymbol, {bool exact = false}) async {
+  var userCurrencyDefault = '';
+
+  ///Build a stream from users profile, specifically their default currency
+  var stream =
+      Profile.buildStream(Session().profileRef).map((x) => x.displaySymbol);
+
+  /// Get the displaySymbol from the stream
+  await stream.first.then((value) {
+    userCurrencyDefault = value;
+  });
+
+  /// Get the current coin price, converted to users displaySymbol
+  var price = await CryptoCompare().price(fromSymbol, userCurrencyDefault);
+
+  ///Return the text contained in Text widget returned from priceWidget
+  return priceWidget(userCurrencyDefault, price, exact: exact).data;
+}

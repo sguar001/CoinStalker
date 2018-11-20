@@ -57,8 +57,8 @@ class _SignInPageState extends State<SignInPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildGoogleButton(),
-                  _buildFacebookButton(),
-                  _buildTwitterButton(),
+//                  _buildFacebookButton(),
+//                  _buildTwitterButton(),
                   _buildEmailButton(),
                 ],
               ),
