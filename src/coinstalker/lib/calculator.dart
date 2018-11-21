@@ -49,23 +49,6 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
           child: ListView(
             children: <Widget>[
               Row(
-                /// Row for the title of page
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Column(
-                    children: <Widget>[
-                      Padding(
-                        padding: EdgeInsets.only(top: 32.0),
-                      ),
-                      Text(
-                        'Select the currencies you\'d like to convert',
-                        style: TextStyle(fontSize: 16.0),
-                      )
-                    ],
-                  )
-                ],
-              ),
-              Row(
                 /// Row to hold the text fields for user input of amount and currency
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
@@ -290,8 +273,8 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                                                               asDialog: true,
                                                               asTabView: false,
                                                             )));
-                                        setState(() =>
-                                            _fromController.text = symbol);
+                                        setState(
+                                            () => _toController.text = symbol);
                                         _updateConversionValue();
                                       }))
                             ],
@@ -299,7 +282,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.only(top: 32.0, bottom: 32.0),
+                        padding: const EdgeInsets.only(top: 32.0),
                         width: 250.0,
                         child: InputDecorator(
                             isFocused: false,

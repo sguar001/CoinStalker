@@ -17,7 +17,8 @@ class CurrencyDetailsPage extends StatefulWidget {
   /// The coin to display details for
   final Coin coin;
 
-  /// Constructs the widget instance
+  /// Default Constructor that constructs the widget instance for the specified
+  /// coin
   CurrencyDetailsPage({@required this.coin});
 
   /// Creates the mutable state for this widget
@@ -132,7 +133,7 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
       );
 
   /// send a message with the name of the currency, its current value, and
-  /// a link that opens the Coinstalker app on that currency page.
+  /// a link that opens the Coinstalker app to that currency page.
   void _shareCoin() async {
     var price = '';
 
@@ -141,11 +142,49 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
       price = value;
     });
 
+    /// Get the name of the coin to be shared
     var coinName = widget.coin.coinName;
+
+    /// Dynamic link that will open app or take user to store to download
+    Uri dynamicLink;
+
+    /// build the dynamic link for this specific coin (find by id)
+    await _buildDynamicURLToCoin(widget.coin.id).then((value) {
+      dynamicLink = value;
+    });
+
+    /// Message to be shared
     var msg = 'Hey, check out the coin: $coinName.\n'
         'It\'s currently priced at: $price!\n'
-        'DEEP LINK';
+        '$dynamicLink';
+
     Share.share(msg);
+  }
+
+  /// Build the dynamic link programmically to find a specific coin, by id
+  Future<Uri> _buildDynamicURLToCoin(int coinID) async {
+    final DynamicLinkParameters parameters = new DynamicLinkParameters(
+      domain: 'coinstalkerucr.page.link',
+      link: Uri.parse('https://example.com/coin/$coinID'),
+      androidParameters: new AndroidParameters(
+          packageName: 'com.coinstalkerucr.coinstalker', minimumVersion: 1),
+      socialMetaTagParameters: new SocialMetaTagParameters(
+        title: 'Example of a Dynamic Link',
+        description: 'This link works whether app is installed or not!',
+      ),
+    );
+
+    /// Build the long url given the above parameters
+    final Uri dynamicUrl = await parameters.buildUrl();
+
+    /// Shorten the link before returning, making length "short"
+    final ShortDynamicLink shortenedLink =
+        await DynamicLinkParameters.shortenUrl(
+            dynamicUrl,
+            DynamicLinkParametersOptions(
+                shortDynamicLinkPathLength: ShortDynamicLinkPathLength.short));
+
+    return shortenedLink.shortUrl;
   }
 
   /// Creates a row for a property of the coin
