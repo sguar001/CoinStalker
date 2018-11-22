@@ -10,6 +10,7 @@ import 'ohlcv_graph.dart';
 import 'price_widget.dart';
 import 'session.dart';
 import 'track_button.dart';
+import 'comments.dart';
 
 /// Widget for displaying the details of an individual currency
 /// This class is stateful because it must update as the user toggles tracking
@@ -113,6 +114,20 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                     name: 'Algorithm', value: Text(widget.coin.algorithm)),
                 _buildPropertyRow(
                     name: 'Proof type', value: Text(widget.coin.proofType)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Column(
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          width: 250.0,
+                          child: Comments(coinID: widget.coin.id),
+                        )
+                      ],
+                    )
+                  ],
+                )
               ],
             ),
           ],
