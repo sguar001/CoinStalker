@@ -237,8 +237,9 @@ class CryptoCompare {
       list.isEmpty ? x : (list + listSeparator + x);
 
   static DateTime fromPosixTime(int x) =>
-      DateTime.fromMillisecondsSinceEpoch(x);
-  static int toPosixTime(DateTime x) => x.millisecondsSinceEpoch;
+      DateTime.fromMillisecondsSinceEpoch(x * 1000);
+  static int toPosixTime(DateTime x) =>
+      (x.millisecondsSinceEpoch / 1000.0).floor();
 
   Future<RateLimit> hourRateLimit() async {
     final object = await _fetchJson('stats/rate/hour/limit');
