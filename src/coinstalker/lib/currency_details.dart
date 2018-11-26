@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:flutter/material.dart';
 import 'package:share/share.dart';
 
 import 'async_widget.dart';
@@ -7,10 +7,10 @@ import 'cryptocompare.dart';
 import 'database.dart';
 import 'drawer.dart';
 import 'ohlcv_graph.dart';
+import 'comments.dart';
 import 'price_widget.dart';
 import 'session.dart';
 import 'track_button.dart';
-import 'comments.dart';
 
 /// Widget for displaying the details of an individual currency
 /// This class is stateful because it must update as the user toggles tracking
@@ -62,40 +62,40 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                                 color: Colors.green,
                                 child: TabBar(
                                   tabs: [
-                                    Tab(text: '14-Day'),
-                                    Tab(text: '24-Hour'),
-                                    Tab(text: '30-Minute'),
+                                    Tab(text: '1 Hour'),
+                                    Tab(text: '1 Day'),
+                                    Tab(text: '1 Week'),
                                   ],
                                 ),
                               ),
-                              SizedBox(width: 0.0, height: 8.0),
+                              SizedBox(height: 8.0),
                               AspectRatio(
                                 aspectRatio: 2.0,
                                 child: TabBarView(
                                   children: [
-                                    futureWidget(
-                                      future: CryptoCompare().dayOhlcv(
-                                          widget.coin.symbol, displaySymbol),
-                                      builder: (context, data) => OhlcvGraph(
-                                            priceSymbol: displaySymbol,
-                                            data: data,
-                                          ),
-                                    ),
-                                    futureWidget(
-                                      future: CryptoCompare().hourOhlcv(
-                                          widget.coin.symbol, displaySymbol),
-                                      builder: (context, data) => OhlcvGraph(
-                                            priceSymbol: displaySymbol,
-                                            data: data,
-                                          ),
-                                    ),
-                                    futureWidget(
+                                    _ohlcvWidget(
                                       future: CryptoCompare().minuteOhlcv(
-                                          widget.coin.symbol, displaySymbol),
-                                      builder: (context, data) => OhlcvGraph(
-                                            priceSymbol: displaySymbol,
-                                            data: data,
-                                          ),
+                                          widget.coin.symbol, displaySymbol,
+                                          limit: 60),
+                                      symbol: displaySymbol,
+                                      xAxisInterval: Duration(minutes: 10),
+                                      range: '1-hour',
+                                    ),
+                                    _ohlcvWidget(
+                                      future: CryptoCompare().minuteOhlcv(
+                                          widget.coin.symbol, displaySymbol,
+                                          limit: 6 * 24),
+                                      symbol: displaySymbol,
+                                      xAxisInterval: Duration(hours: 3),
+                                      range: '1-day',
+                                    ),
+                                    _ohlcvWidget(
+                                      future: CryptoCompare().hourOhlcv(
+                                          widget.coin.symbol, displaySymbol,
+                                          limit: 30 * 24),
+                                      symbol: displaySymbol,
+                                      xAxisInterval: Duration(days: 1),
+                                      range: '1-week',
                                     ),
                                   ],
                                 ),
@@ -127,7 +127,7 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                       ],
                     )
                   ],
-                )
+                ),
               ],
             ),
           ],
@@ -145,6 +145,32 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
           onPressed: _shareCoin,
           tooltip: 'Share details about this coin',
         ),
+      );
+
+  Widget _ohlcvWidget(
+          {@required Future<List<Ohlcv>> future,
+          @required String symbol,
+          @required Duration xAxisInterval,
+          @required String range}) =>
+      futureWidget(
+        future: future,
+        builder: (context, data) => FlatButton(
+              child: OhlcvGraph(
+                data: data,
+                symbol: symbol,
+                xAxisInterval: xAxisInterval,
+              ),
+              onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => OhlcvPage(
+                          title: '$range ${widget.coin.symbol}-$symbol chart',
+                          data: data,
+                          symbol: symbol,
+                          xAxisInterval: xAxisInterval,
+                        ),
+                  )),
+            ),
       );
 
   /// send a message with the name of the currency, its current value, and
