@@ -6,6 +6,7 @@ import 'currency_details.dart';
 import 'dashboard_coins.dart';
 import 'drawer.dart';
 import 'session.dart';
+import 'news.dart';
 
 /// Widget for displaying the dashboard overview
 /// This class is stateful because contains multiple tabs
@@ -18,6 +19,12 @@ class DashboardPage extends StatefulWidget {
 /// State for the dashboard page
 class _DashboardPageState extends State<DashboardPage>
     with WidgetsBindingObserver {
+  int _index = 0;
+  final List<Widget> _children = [
+    DashboardCoins(),
+    DashboardNews(),
+  ];
+
   /// Instance of the application session
   final _session = Session();
 
@@ -44,32 +51,14 @@ class _DashboardPageState extends State<DashboardPage>
   /// Describes the part of the user interface represented by this widget
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              stops: [0.1, 0.5, 0.7, 0.9],
-              colors: [
-                Colors.black,
-                Colors.green[700],
-                Colors.green[600],
-                Colors.black,
-              ],
-            ),
-          ),
-          child: DashboardCoins(),
-        ),
+        body: _children[_index],
         bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 0,
+          onTap: tap,
+          currentIndex: _index,
           items: [
             BottomNavigationBarItem(
-              title: Text('Graph'),
-              icon: Icon(Icons.assessment),
-            ),
-            BottomNavigationBarItem(
-              title: Text('List'),
-              icon: Icon(Icons.list),
+              title: Text('Favorites'),
+              icon: Icon(Icons.favorite),
             ),
             BottomNavigationBarItem(
               title: Text('News'),
@@ -125,7 +114,11 @@ class _DashboardPageState extends State<DashboardPage>
       print('Deeplink: $deepLink');
     }
   }
-
+  void tap(int index) {
+    setState(() {
+      _index = index;
+    });
+  }
   @override
   void dispose() {
     /// Get rid of the observer once we are done using it
