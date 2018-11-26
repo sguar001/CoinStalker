@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:flutter/material.dart';
 
-import 'drawer.dart';
-import 'session.dart';
 import 'cryptocompare.dart';
 import 'currency_details.dart';
+import 'dashboard_coins.dart';
+import 'drawer.dart';
+import 'session.dart';
 
 /// Widget for displaying the dashboard overview
 /// This class is stateful because contains multiple tabs
@@ -57,25 +58,7 @@ class _DashboardPageState extends State<DashboardPage>
               ],
             ),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Image.asset(
-                          'images/stock.jpg',
-                          height: 300.0,
-                          //width: 350.0,
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                    ]),
-              ),
-            ],
-          ),
+          child: DashboardCoins(),
         ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: 0,
@@ -97,6 +80,12 @@ class _DashboardPageState extends State<DashboardPage>
         appBar: AppBar(
           centerTitle: true,
           title: Text('Dashboard'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => setState(() {}),
+            ),
+          ],
         ),
         drawer: UserDrawer(),
       );
