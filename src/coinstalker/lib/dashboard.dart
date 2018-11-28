@@ -5,8 +5,8 @@ import 'cryptocompare.dart';
 import 'currency_details.dart';
 import 'dashboard_coins.dart';
 import 'drawer.dart';
-import 'session.dart';
 import 'news.dart';
+import 'session.dart';
 
 /// Widget for displaying the dashboard overview
 /// This class is stateful because contains multiple tabs
@@ -69,12 +69,6 @@ class _DashboardPageState extends State<DashboardPage>
         appBar: AppBar(
           centerTitle: true,
           title: Text('Dashboard'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => setState(() {}),
-            ),
-          ],
         ),
         drawer: UserDrawer(),
       );
@@ -114,11 +108,13 @@ class _DashboardPageState extends State<DashboardPage>
       print('Deeplink: $deepLink');
     }
   }
+
   void tap(int index) {
     setState(() {
       _index = index;
     });
   }
+
   @override
   void dispose() {
     /// Get rid of the observer once we are done using it
