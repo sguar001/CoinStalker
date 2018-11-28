@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
+import 'package:http/http.dart' as http;
 
 import 'drawer.dart';
 import 'session.dart';
 import 'cryptocompare.dart';
 import 'currency_details.dart';
+import 'dart:async';
+import 'dart:convert';
+
 
 /// Widget for displaying the dashboard overview
 /// This class is stateful because contains multiple tabs
@@ -20,15 +24,30 @@ class _DashboardPageState extends State<DashboardPage>
   /// Instance of the application session
   final _session = Session();
 
-  @override
-  void initState() {
-    super.initState();
+  //Current tab for the navigation bar.
+  int currentTab = 0;
+  GraphPage _graphPage;
+  FavoritePage _favoritesPage;
+  NewsPage _newsPage;
+  List<Widget> pages;
+  Widget currentPage;
 
-    /// Use the WidgetsBindingObserver to listen to the status of the widget when
-    /// it resumes or pauses. Allows us to see the dynamic link even if we don't execute
-    /// initState again.
-    WidgetsBinding.instance.addObserver(this);
-    _retrieveDynamicLink();
+  //Url to get data from
+  final String url = 'https://min-api.cryptocompare.com/data/v2/news/?lang=EN';
+
+  //Variable to store data in
+  List data;
+
+  Future<String> getNewsData() async {
+    var res = await http
+        .get(Uri.encodeFull(url), headers: {"Accept": "application/json"});
+
+    setState(() {
+      var resBody = json.decode(res.body);
+      data = resBody["Data"];
+    });
+
+    return "Success!";
   }
 
   @override
@@ -43,50 +62,33 @@ class _DashboardPageState extends State<DashboardPage>
   /// Describes the part of the user interface represented by this widget
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              stops: [0.1, 0.5, 0.7, 0.9],
-              colors: [
-                Colors.black,
-                Colors.green[700],
-                Colors.green[600],
-                Colors.black,
-              ],
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Image.asset(
-                          'images/stock.jpg',
-                          height: 300.0,
-                          //width: 350.0,
-                          fit: BoxFit.fill,
-                        ),
-                      ),
-                    ]),
-              ),
-            ],
-          ),
-        ),
+        body: currentPage,
         bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 0,
-          items: [
+          currentIndex: currentTab,
+          onTap: (int index) {
+            setState(() {
+              currentTab = index;
+              if (index == 0)
+                currentPage = _buildGraph(context);
+              else if (index == 1) {
+                currentPage = pages[1];
+              }
+              else if (index == 2) {
+                currentPage = _buildAllNews(context);
+              }
+              else {
+                index = index % 3;
+              }
+            });
+          },
+          items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               title: Text('Graph'),
               icon: Icon(Icons.assessment),
             ),
             BottomNavigationBarItem(
-              title: Text('List'),
-              icon: Icon(Icons.list),
+              title: Text('Favorites'),
+              icon: Icon(Icons.favorite),
             ),
             BottomNavigationBarItem(
               title: Text('News'),
@@ -100,6 +102,100 @@ class _DashboardPageState extends State<DashboardPage>
         ),
         drawer: UserDrawer(),
       );
+
+  Widget _buildGraph(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          stops: [0.1, 0.5, 0.7, 0.9],
+          colors: [
+            Colors.black,
+            Colors.green[700],
+            Colors.green[600],
+            Colors.black,
+          ],
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Image.asset(
+                      'images/stock.jpg',
+                      height: 300.0,
+                      //width: 350.0,
+                      fit: BoxFit.fill,
+                    ),
+                  ),
+                ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAllNews(BuildContext context) {
+    return Scaffold(
+      body: ListView.builder(
+        itemCount: data == null ? 0 : data.length,
+        itemBuilder: (BuildContext context, int index) {
+          return new Container(
+              child: Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Card(
+                        child: Container(
+                          color: Colors.blue,
+                          padding: EdgeInsets.all(15.0),
+                          child: Text("Title: " + data[index]["title"],
+                              style:
+                              TextStyle(fontSize: 18.0,
+                                  color: Colors.black54
+                              )),
+                        ),
+                      ),
+                      Card(
+                          child: Container(
+                            padding: EdgeInsets.all(15.0),
+                            child: Text("About: " + data[index]["body"],
+                                style:
+                                TextStyle(fontSize: 18.0,
+                                    color: Colors.black54
+                                )),
+                          )
+                      ),],
+                  )
+              )
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    _graphPage = GraphPage();
+    _favoritesPage = FavoritePage();
+    _newsPage = NewsPage();
+    pages = [_graphPage, _favoritesPage, _newsPage];
+
+    currentPage = _buildGraph(context);
+    super.initState();
+    this.getNewsData();
+
+    /// Use the WidgetsBindingObserver to listen to the status of the widget when
+    /// it resumes or pauses. Allows us to see the dynamic link even if we don't execute
+    /// initState again.
+    WidgetsBinding.instance.addObserver(this);
+    _retrieveDynamicLink();
+  }
 
   ///  calls the method that is responsible for obtaining the deep link
   ///  in the case our application was opened from the deep link
@@ -142,5 +238,30 @@ class _DashboardPageState extends State<DashboardPage>
     /// Get rid of the observer once we are done using it
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+}
+
+class GraphPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardPageState()._buildGraph(context);
+  }
+}
+
+class FavoritePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      //TODO: Add favoritePage
+      height:300.0,
+      color: Colors.blue,
+    );
+  }
+}
+
+class NewsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return _DashboardPageState()._buildAllNews(context);
   }
 }
