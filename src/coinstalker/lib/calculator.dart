@@ -346,7 +346,7 @@ class _ExchangeRateCalculatorState extends State<ExchangeRateCalculator> {
     try {
       final singlePrice =
           await _cryptoCompare.price(_fromController.text, _toController.text);
-      final price = double.parse(_amountController.text) * singlePrice;
+      final price = double.parse(_amountController.text) * singlePrice.price;
       setState(() {
         if ('$price'.length > 4) {
           _convertedValue = price.toStringAsPrecision(7);

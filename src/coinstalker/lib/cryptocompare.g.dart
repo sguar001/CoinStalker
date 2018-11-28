@@ -213,3 +213,63 @@ Map<String, dynamic> _$OhlcvToJson(Ohlcv instance) => <String, dynamic>{
       'volumefrom': instance.volumeFrom,
       'volumeto': instance.volumeTo
     };
+
+TradingInfo _$TradingInfoFromJson(Map<String, dynamic> json) {
+  return TradingInfo(
+      fromSymbol: json['FROMSYMBOL'] as String,
+      toSymbol: json['TOSYMBOL'] as String,
+      priceValue: json['PRICE'] as num,
+      lastUpdate: json['LASTUPDATE'] == null
+          ? null
+          : CryptoCompare.fromPosixTime(json['LASTUPDATE'] as int),
+      lastVolumeValue: json['LASTVOLUME'] as num,
+      lastVolumeToValue: json['LASTVOLUMETO'] as num,
+      volumeDayValue: json['VOLUMEDAY'] as num,
+      volumeDayToValue: json['VOLUMEDAYTO'] as num,
+      volume24HourValue: json['VOLUME24HOUR'] as num,
+      volume24HourToValue: json['VOLUME24HOURTO'] as num,
+      openDayValue: json['OPENDAY'] as num,
+      highDayValue: json['HIGHDAY'] as num,
+      lowDayValue: json['LOWDAY'] as num,
+      open24HourValue: json['OPEN24HOUR'] as num,
+      high24HourValue: json['HIGH24HOUR'] as num,
+      low24HourValue: json['LOW24HOUR'] as num,
+      change24HourValue: json['CHANGE24HOUR'] as num,
+      changePct24Hour: json['CHANGEPCT24HOUR'] as num,
+      changeDayValue: json['CHANGEDAY'] as num,
+      changePctDay: json['CHANGEPCTDAY'] as num,
+      supplyValue: json['SUPPLY'] as num,
+      marketCapValue: json['MKTCAP'] as num,
+      totalVolume24HourValue: json['TOTALVOLUME24H'] as num,
+      totalVolume24HourToValue: json['TOTALVOLUME24HTO'] as num);
+}
+
+Map<String, dynamic> _$TradingInfoToJson(TradingInfo instance) =>
+    <String, dynamic>{
+      'FROMSYMBOL': instance.fromSymbol,
+      'TOSYMBOL': instance.toSymbol,
+      'PRICE': instance.priceValue,
+      'LASTUPDATE': instance.lastUpdate == null
+          ? null
+          : CryptoCompare.toPosixTime(instance.lastUpdate),
+      'LASTVOLUME': instance.lastVolumeValue,
+      'LASTVOLUMETO': instance.lastVolumeToValue,
+      'VOLUMEDAY': instance.volumeDayValue,
+      'VOLUMEDAYTO': instance.volumeDayToValue,
+      'VOLUME24HOUR': instance.volume24HourValue,
+      'VOLUME24HOURTO': instance.volume24HourToValue,
+      'OPENDAY': instance.openDayValue,
+      'HIGHDAY': instance.highDayValue,
+      'LOWDAY': instance.lowDayValue,
+      'OPEN24HOUR': instance.open24HourValue,
+      'HIGH24HOUR': instance.high24HourValue,
+      'LOW24HOUR': instance.low24HourValue,
+      'CHANGE24HOUR': instance.change24HourValue,
+      'CHANGEPCT24HOUR': instance.changePct24Hour,
+      'CHANGEDAY': instance.changeDayValue,
+      'CHANGEPCTDAY': instance.changePctDay,
+      'SUPPLY': instance.supplyValue,
+      'MKTCAP': instance.marketCapValue,
+      'TOTALVOLUME24H': instance.totalVolume24HourValue,
+      'TOTALVOLUME24HTO': instance.totalVolume24HourToValue
+    };
