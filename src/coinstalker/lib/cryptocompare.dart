@@ -241,6 +241,8 @@ class CryptoCompare {
   static int toPosixTime(DateTime x) =>
       (x.millisecondsSinceEpoch / 1000.0).floor();
 
+  static String apiKey;
+
   Future<RateLimit> hourRateLimit() async {
     final object = await _fetchJson('stats/rate/hour/limit');
     return RateLimit.fromJson(object);
@@ -422,11 +424,22 @@ class CryptoCompare {
           {int limit = 14}) async =>
       await _ohlcv('data/histoday', fromSymbol, toSymbol, limit: limit);
 
-  Uri _uri(String path, {Map<String, String> params}) =>
-      Uri.https(_authority, path, params);
+  Uri _uri(String path, {Map<String, String> params}) {
+    if (apiKey == null) {
+      throw 'You must specify an API key in cryptocompare.dart';
+    }
+
+    params = params ?? <String, String>{};
+    params['api_key'] = params['api_key'] ?? apiKey;
+    return Uri.https(_authority, path, params);
+  }
+
   Future<http.Response> _fetchRaw(String path,
-          {Map<String, String> params}) async =>
-      http.get(_uri(path, params: params));
+      {Map<String, String> params}) async {
+    final uri = _uri(path, params: params);
+    print('Fetching $uri');
+    return http.get(uri);
+  }
 
   Future<dynamic> _fetchJson(path, {Map<String, String> params}) async {
     final response = await _fetchRaw(path, params: params);
