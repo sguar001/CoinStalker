@@ -62,46 +62,46 @@ class _DashboardPageState extends State<DashboardPage>
   /// Describes the part of the user interface represented by this widget
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: currentPage,
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: currentTab,
-          onTap: (int index) {
-            setState(() {
-              currentTab = index;
-              if (index == 0)
-                currentPage = _buildGraph(context);
-              else if (index == 1) {
-                currentPage = pages[1];
-              }
-              else if (index == 2) {
-                currentPage = _buildAllNews(context);
-              }
-              else {
-                index = index % 3;
-              }
-            });
-          },
-          items: <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              title: Text('Graph'),
-              icon: Icon(Icons.assessment),
-            ),
-            BottomNavigationBarItem(
-              title: Text('Favorites'),
-              icon: Icon(Icons.favorite),
-            ),
-            BottomNavigationBarItem(
-              title: Text('News'),
-              icon: Icon(Icons.book),
-            ),
-          ],
+    body: currentPage,
+    bottomNavigationBar: BottomNavigationBar(
+      currentIndex: currentTab,
+      onTap: (int index) {
+        setState(() {
+          currentTab = index;
+          if (index == 0)
+            currentPage = _buildGraph(context);
+          else if (index == 1) {
+            currentPage = pages[1];
+          }
+          else if (index == 2) {
+            currentPage = _buildAllNews(context);
+          }
+          else {
+            index = index % 3;
+          }
+        });
+      },
+      items: <BottomNavigationBarItem>[
+        BottomNavigationBarItem(
+          title: Text('Graph'),
+          icon: Icon(Icons.assessment),
         ),
-        appBar: AppBar(
-          centerTitle: true,
-          title: Text('Dashboard'),
+        BottomNavigationBarItem(
+          title: Text('Favorites'),
+          icon: Icon(Icons.favorite),
         ),
-        drawer: UserDrawer(),
-      );
+        BottomNavigationBarItem(
+          title: Text('News'),
+          icon: Icon(Icons.book),
+        ),
+      ],
+    ),
+    appBar: AppBar(
+      centerTitle: true,
+      title: Text('Dashboard'),
+    ),
+    drawer: UserDrawer(),
+  );
 
   Widget _buildGraph(BuildContext context) {
     return Container(
@@ -202,7 +202,7 @@ class _DashboardPageState extends State<DashboardPage>
   ///  ASSUMING that we start the app for the first time and we hit the initState()
   Future<void> _retrieveDynamicLink() async {
     final PendingDynamicLinkData data =
-        await FirebaseDynamicLinks.instance.retrieveDynamicLink();
+    await FirebaseDynamicLinks.instance.retrieveDynamicLink();
     final Uri deepLink = data?.link;
 
     if (deepLink != null) {
@@ -265,3 +265,4 @@ class NewsPage extends StatelessWidget {
     return _DashboardPageState()._buildAllNews(context);
   }
 }
+

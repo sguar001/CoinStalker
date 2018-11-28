@@ -7,27 +7,17 @@ import 'cryptocompare.dart';
 import 'currency_details.dart';
 import 'database.dart';
 import 'drawer.dart';
-import 'price_widget.dart';
+import 'either.dart';
+import 'price.dart';
+import 'price_cache.dart';
 import 'session.dart';
 import 'sort.dart';
 import 'track_button.dart';
 
-/// Represents the price of a coin at a particular time
-class _CoinPrice {
-  /// The symbol in which the quote price was obtained
-  String quoteSymbol;
-
-  /// The quote price of the coin
-  num quotePrice;
-
-  /// Constructs this instance
-  _CoinPrice(this.quoteSymbol, this.quotePrice);
-}
-
 /// Type of the delegate function called when a coin is pressed
 typedef void CoinPressedDelegate(Coin coin);
 
-/// Type of the delegate function called when a FIAT symbol is pressed
+/// Type of the delegate function called when a fiat symbol is pressed
 typedef void FiatPressedDelegate(String symbol);
 
 /// Widget for displaying, searching, and sorting the list of currencies
@@ -36,7 +26,7 @@ class CurrencyListPage extends StatefulWidget {
   /// Function to call when a coin is pressed
   final CoinPressedDelegate onCoinPressed;
 
-  /// Function to call when a FIAT symbol is pressed
+  /// Function to call when a fiat symbol is pressed
   final FiatPressedDelegate onFiatPressed;
 
   /// Whether the page should display as a dialog instead of a full page
@@ -71,21 +61,34 @@ enum _AppBarState {
 /// State for the currency list page
 class _CurrencyListPageState extends State<CurrencyListPage> {
   /// Initial sorting for the coins list
-  static final _initialSort = Sort<MapEntry<Coin, _CoinPrice>>(
+  static final _initialSort = Sort<MapEntry<Coin, Price>>(
     [
       SortProperty('Symbol', (x, y) => x.key.symbol.compareTo(y.key.symbol),
           order: SortOrder.ascending),
       SortProperty('Name', (x, y) => x.key.fullName.compareTo(y.key.fullName)),
-      SortProperty(
-          'Price', (x, y) => x.value.quotePrice.compareTo(y.value.quotePrice)),
+      SortProperty('Price', (x, y) {
+        if (x.value == null) return -1;
+        if (y.value == null) return 1;
+        return x.value.price.compareTo(y.value.price);
+      }),
     ],
   );
 
   /// Instance of the application session
   final _session = Session();
 
-  /// Instance of the CryptoCompare library
-  final _cryptoCompare = CryptoCompare();
+  /// Stream for the user profile
+  Stream<Profile> _profileStream;
+
+  /// Most recent user profile
+  Profile _profile;
+
+  /// Cache of fetched prices
+  var _priceCache = PriceCache();
+
+  // Live data
+  bool _isLoading = true;
+  bool _isComplete = false;
 
   /// Current state of the app bar
   /// The app bar serves multiple purposes and changes state when the user
@@ -95,14 +98,8 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   /// Controls the search bar text label
   final _searchFilter = TextEditingController();
 
-  /// The current subscription to the profile for refreshing
-  StreamSubscription<Profile> _refreshSubscription;
-
-  /// The future for the list of coins
-  Future<Map<Coin, _CoinPrice>> _coins;
-
   /// Sorting to apply to the coin list
-  var _sort = Sort<MapEntry<Coin, _CoinPrice>>.from(_initialSort);
+  var _sort = Sort<MapEntry<Coin, Price>>.from(_initialSort);
 
   /// Called when this object is inserted into the tree
   /// Requests the list of coins and installs a listener on the search filter
@@ -110,10 +107,36 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   void initState() {
     super.initState();
 
-    _refreshCoins();
+    _profileStream = Profile.buildStream(_session.profileRef);
+    _profileStream.listen((profile) {
+      if (profile == _profile) return;
+      setState(() {
+        _profile = profile;
+        refresh();
+      });
+    });
 
     // Whenever the search filter is modified, force a rebuild of the widget
     _searchFilter.addListener(() => setState(() {}));
+  }
+
+  /// Refreshes the live data
+  Future<void> refresh() async {
+    setState(() {
+      _isLoading = true;
+      _isComplete = false;
+      _priceCache.allSymbols =
+          _session.coins.map((coin) => coin.symbol).toList();
+      _priceCache.toSymbol = _profile.displaySymbol;
+    });
+    _priceCache.refresh().then((_) {
+      setState(() {
+        _isComplete = true;
+      });
+    });
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   /// Describes the part of the user interface represented by this widget
@@ -147,17 +170,17 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
           drawer: widget.asDialog ? null : UserDrawer(),
         ),
       );
-    } else if (!widget.asTabView) {
-      return Scaffold(
-        body: _buildFiatSymbolsList(),
-        appBar: AppBar(
-          centerTitle: true,
-          title: _buildAppBarTitle(),
-          actions: _buildAppBarActions(),
-        ),
-        drawer: widget.asDialog ? null : UserDrawer(),
-      );
     }
+
+    return Scaffold(
+      body: _buildFiatSymbolsList(),
+      appBar: AppBar(
+        centerTitle: true,
+        title: _buildAppBarTitle(),
+        actions: _buildAppBarActions(),
+      ),
+      drawer: widget.asDialog ? null : UserDrawer(),
+    );
   }
 
   /// Creates a title widget for the app bar appropriate for its state
@@ -252,28 +275,25 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
   }
 
   /// Creates a list tile widget for an individual coin
-  Widget _buildCoinRow(MapEntry<Coin, _CoinPrice> entry) {
-    var children = <Widget>[];
-
-    if (entry.value != null) {
-      children.add(Flexible(
-          child: priceWidget(entry.value.quoteSymbol, entry.value.quotePrice)));
-    }
-
-    children
-        .add(Flexible(child: buildTrackButton(entry.key, _session.profileRef)));
-
-    return ListTile(
-      title: Text(entry.key.fullName),
-      trailing: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
-      ),
-      onTap: () => (widget.onCoinPressed ?? _goToDetails)(entry.key),
-    );
-  }
+  Widget _buildCoinRow(Coin coin, Future<Price> priceFuture) => ListTile(
+        title: Text(coin.fullName),
+        trailing: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: futureWidget(
+                future: priceFuture,
+                waitBuilder: (context) => Container(width: 0.0, height: 0.0),
+                builder: (context, price) => Text('$price'),
+              ),
+            ),
+            Flexible(child: buildTrackButton(coin, _session.profileRef)),
+          ],
+        ),
+        onTap: () => (widget.onCoinPressed ?? _goToDetails)(coin),
+      );
 
   /// Navigates to the details page for the given coin
   void _goToDetails(Coin coin) {
@@ -283,15 +303,15 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
 
   /// Filters a list of coins to only include coins whose names contain the
   /// search filter text
-  List<MapEntry<Coin, _CoinPrice>> _filterCoins(
-      List<MapEntry<Coin, _CoinPrice>> allCoins) {
+  List<MapEntry<Coin, Future<Price>>> _filterCoins(
+      List<MapEntry<Coin, Future<Price>>> allCoins) {
     final pattern = _searchFilter.text.toLowerCase();
-    final filter = (MapEntry<Coin, _CoinPrice> entry) =>
+    final filter = (MapEntry<Coin, Future<Price>> entry) =>
         entry.key.fullName.toLowerCase().contains(pattern);
     return allCoins.where(filter).toList();
   }
 
-  /// Filters a list of FIAT symbols to only include symbols whose names contain the
+  /// Filters a list of fiat symbols to only include symbols whose names contain the
   /// search filter text
   Set<String> _filterSymbols(Set<String> allSymbols) {
     final pattern = _searchFilter.text.toLowerCase();
@@ -301,38 +321,52 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
 
   /// Create a list view widget for a list of coins
   /// If the search filter is not empty, only matching coins are included
-  Widget _buildCoinsListView(List<Coin> allCoins) => futureWidget(
-      future: _coins?.then((m) => m.entries.toList())?.then((e) {
-        e.sort(_sort.comparator());
-        return e;
-      }),
-      builder: (context, List<MapEntry<Coin, _CoinPrice>> allEntries) {
-        final entries =
-            allEntries.where((entry) => allCoins.contains(entry.key)).toList();
-        final coins = _appBarState == _AppBarState.search
-            ? _filterCoins(entries)
-            : entries;
-        return RefreshIndicator(
-          onRefresh: _refreshCoins,
-          child: ListView.builder(
-            itemCount: coins.length,
-            itemBuilder: (context, index) => _buildCoinRow(coins[index]),
-          ),
-        );
-      });
+  Widget _buildCoinsListView(List<Coin> allCoins) {
+    List<MapEntry<Coin, Future<Price>>> entries;
+    if (_isComplete) {
+      final presentCoins = allCoins
+          .map((coin) => MapEntry(coin, _priceCache.prices[coin.symbol]))
+          .toList();
+      presentCoins.sort(_sort.comparator());
+      entries = presentCoins
+          .map((e) => MapEntry(e.key, Future.value(e.value)))
+          .toList();
+    } else {
+      entries = allCoins
+          .map((coin) => MapEntry(coin, _priceCache.priceFor(coin.symbol)))
+          .toList();
+    }
 
-  /// Creates a stream builder widget for a list of coins
-  /// While the list is being retrieved, a progress indicator is displayed
-  Widget _buildStreamCoins(Stream<List<Coin>> stream) => streamWidget(
-        stream: stream,
-        builder: (context, data) => _buildCoinsListView(data),
-      );
+    final coins =
+        _appBarState == _AppBarState.search ? _filterCoins(entries) : entries;
+    return RefreshIndicator(
+      onRefresh: refresh,
+      child: ListView.builder(
+        itemCount: coins.length,
+        itemBuilder: (context, index) {
+          final coin = coins[index];
+          return _buildCoinRow(coin.key, coin.value);
+        },
+      ),
+    );
+  }
 
   /// Creates a widget for the list of tracked coins
-  Widget _buildTrackedCoins() => _buildStreamCoins(_trackedCoins());
+  Widget _buildTrackedCoins() => CircularProgressFallbackBuilder(
+        isFallback: _isLoading,
+        builder: (context) {
+          final trackedCoins = _session.coins
+              .where((coin) => _profile.trackedSymbols.contains(coin.symbol))
+              .toList();
+          return _buildCoinsListView(trackedCoins);
+        },
+      );
 
   /// Creates a widget for the list of coins
-  Widget _buildAllCoins() => _buildCoinsListView(_session.coins);
+  Widget _buildAllCoins() => CircularProgressFallbackBuilder(
+        isFallback: _isLoading,
+        builder: (context) => _buildCoinsListView(_session.coins),
+      );
 
   Widget _buildFiatSymbolsList() {
     final entries = _session.fiatSymbols;
@@ -347,51 +381,5 @@ class _CurrencyListPageState extends State<CurrencyListPage> {
         );
       },
     );
-  }
-
-  /// Builds a stream of the user's tracked coins
-  Stream<List<Coin>> _trackedCoins() =>
-      Profile.buildStream(_session.profileRef).map((profile) => _session.coins
-          .where((coin) => profile.trackedSymbols.contains(coin.symbol))
-          .toList());
-
-  /// Refreshes the list of coin prices
-  Future<void> _refreshCoins() async {
-    _refreshSubscription?.cancel();
-    _refreshSubscription =
-        Profile.buildStream(_session.profileRef).listen((profile) {
-      var futures = <Future<List<MapEntry<Coin, _CoinPrice>>>>[];
-      var remainingCoins = List<Coin>.from(_session.coins);
-      while (remainingCoins.isNotEmpty) {
-        var batchCoins = <Coin>[];
-        var batchSymbols = '';
-        while (remainingCoins.isNotEmpty &&
-            CryptoCompare.appendList(batchSymbols, remainingCoins.first.symbol)
-                    .length <
-                CryptoCompare.maxPriceMultiFromSymbolsLength) {
-          batchSymbols = CryptoCompare.appendList(
-              batchSymbols, remainingCoins.first.symbol);
-          batchCoins.add(remainingCoins.first);
-          remainingCoins.removeAt(0);
-        }
-
-        futures.add(_cryptoCompare.priceMulti(
-            batchCoins.map((coin) => coin.symbol).toList(), [
-          profile.displaySymbol
-        ]).then((prices) => prices.entries
-            .map((e) => MapEntry<Coin, _CoinPrice>(
-                batchCoins.singleWhere((coin) => coin.symbol == e.key),
-                _CoinPrice(
-                    profile.displaySymbol, e.value[profile.displaySymbol])))
-            .toList()));
-      }
-
-      setState(() {
-        _coins = Future.wait(futures).then((lists) =>
-            Map<Coin, _CoinPrice>.fromEntries(lists
-                .fold<List<MapEntry<Coin, _CoinPrice>>>([], (a, x) => a + x)));
-      });
-    });
-    return Future.value();
   }
 }
