@@ -67,7 +67,10 @@ class UserComments {
 
   /// Constructs this document instance from a map and optional reference
   UserComments.fromMap(Map<String, dynamic> map, {this.reference})
-      : userComments = map['userComments'].cast<Map<String, dynamic>>();
+      : userComments = (map['userComments'] as List<dynamic>)
+            .map((x) => (x as Map<dynamic, dynamic>)
+                .map((k, v) => MapEntry(k as String, v)))
+            .toList();
 
   /// Constructs this document instance from a snapshot
   UserComments.fromSnapshot(DocumentSnapshot snapshot)
