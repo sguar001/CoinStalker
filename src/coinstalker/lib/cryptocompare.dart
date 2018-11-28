@@ -245,8 +245,7 @@ class CryptoCompare {
   static int toPosixTime(DateTime x) =>
       (x.millisecondsSinceEpoch / 1000.0).floor();
 
-  static String apiKey =
-      'ecc6850f27700108e646b33157f02506765f02d41ef327e5110e1547aa0270da';
+  static String apiKey;
 
   Future<RateLimit> hourRateLimit() async {
     final object = await _fetchJson('stats/rate/hour/limit');
