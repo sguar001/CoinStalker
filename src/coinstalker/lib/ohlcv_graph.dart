@@ -97,6 +97,12 @@ class OhlcvExtents {
       _maxVolume = max(_maxVolume, datum.volumeFrom.toDouble());
       _maxVolume = max(_maxVolume, datum.volumeTo.toDouble());
     }
+
+    if (data == null || data.isEmpty) {
+      _minPrice = 0.0;
+      _maxPrice = 0.0;
+      _maxVolume = 0.0;
+    }
   }
 }
 
@@ -388,13 +394,10 @@ class _CandlestickPainter extends _OhlcvPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final yInterval = pow(
-            10,
-            (log(widget.dataExtents.maxPrice - widget.dataExtents.minPrice) /
-                        log(10))
-                    .ceil() -
-                1)
-        .toDouble();
+    final range = widget.dataExtents.maxPrice - widget.dataExtents.minPrice;
+    if (range == 0.0) return;
+
+    final yInterval = pow(10, (log(range) / log(10)).ceil() - 1).toDouble();
     final yMinimum =
         (widget.dataExtents.minPrice / yInterval).floorToDouble() * yInterval;
     final yMaximum =
@@ -466,9 +469,10 @@ class _VolumePainter extends _OhlcvPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final yInterval =
-        pow(10, (log(widget.dataExtents.maxVolume) / log(10)).ceil() - 1)
-            .toDouble();
+    final range = widget.dataExtents.maxVolume;
+    if (range == 0.0) return;
+
+    final yInterval = pow(10, (log(range) / log(10)).ceil() - 1).toDouble();
     final yMinimum = 0.0;
     final yMaximum =
         (widget.dataExtents.maxVolume / yInterval).ceilToDouble() * yInterval;
