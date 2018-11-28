@@ -38,6 +38,16 @@ class Profile {
         'displaySymbol': displaySymbol,
         'trackedSymbols': trackedSymbols.cast<dynamic>()
       };
+
+  @override
+  int get hashCode => displaySymbol.hashCode ^ trackedSymbols.hashCode;
+
+  @override
+  bool operator ==(other) =>
+      identical(this, other) ||
+      runtimeType == other.runtimeType &&
+          displaySymbol == other.displaySymbol &&
+          trackedSymbols == other.trackedSymbols;
 }
 
 /// User comments document for a specific coin
