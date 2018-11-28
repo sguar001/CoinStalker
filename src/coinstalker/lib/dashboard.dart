@@ -34,6 +34,17 @@ class _DashboardPageState extends State<DashboardPage>
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    /// Use the WidgetsBindingObserver to listen to the status of the widget when
+    /// it resumes or pauses. Allows us to see the dynamic link even if we don't execute
+    /// initState again.
+    _retrieveDynamicLink();
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     /// Each time the dashboard is resumed(app is opened again),
     /// the method is invoked to obtain the dynamic link
