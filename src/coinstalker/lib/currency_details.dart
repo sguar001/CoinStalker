@@ -1,6 +1,7 @@
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
 import 'package:share/share.dart';
+import 'package:flutter/services.dart';
 
 import 'async_widget.dart';
 import 'cryptocompare.dart';
@@ -32,6 +33,9 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
   /// Instance of the application session
   final _session = Session();
 
+  /// For comments text field
+  final _commentsController = TextEditingController();
+
   /// Describes the part of the user interface represented by this widget
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -44,7 +48,8 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
               ),
             ),
             ListView(
-              padding: const EdgeInsets.all(32.0),
+              padding:
+                  const EdgeInsets.only(top: 32.0, left: 32.0, right: 32.0),
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
@@ -115,17 +120,59 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                 _buildPropertyRow(
                     name: 'Proof type', value: Text(widget.coin.proofType)),
                 Row(
+                  /// Row that holds the container for list of comments for coin
+                  /// Gets comments from Firebase DB for specific coin ID
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Column(
                       children: <Widget>[
                         Container(
-                          padding: const EdgeInsets.all(16.0),
-                          width: 250.0,
+                          padding: const EdgeInsets.only(top: 16.0),
+                          width: 330.0,
+                          height: 300.0,
                           child: Comments(coinID: widget.coin.id),
-                        )
+                        ),
                       ],
                     )
+                  ],
+                ),
+                Row(
+                  /// Row that holds text field for comment input
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Column(
+                      children: <Widget>[
+                        Container(
+                          padding:
+                              const EdgeInsets.only(top: 16.0, bottom: 16.0),
+                          constraints: BoxConstraints.expand(
+                              width: 300.0, height: 100.0),
+                          child: TextFormField(
+                            controller: _commentsController,
+                            style:
+                                TextStyle(fontSize: 16.0, color: Colors.black),
+                            decoration: InputDecoration(
+                              labelStyle: TextStyle(fontSize: 18.0),
+                              labelText: 'Enter Comment',
+                              border: UnderlineInputBorder(
+                                borderRadius: BorderRadius.circular(5.0),
+                              ),
+                            ),
+                            keyboardType: TextInputType.text,
+                            onEditingComplete: () {
+                              Comments.addComment(
+                                  _commentsController.text, widget.coin.id);
+                              _commentsController.clear();
+
+                              /// From services.dart, hides keyboard on submission of comment
+                              SystemChannels.textInput
+                                  .invokeMethod('TextInput.hide');
+                              setState(() {});
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ],

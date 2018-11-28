@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import 'database.dart';
 import 'session.dart';
@@ -12,6 +11,13 @@ class Comments extends StatefulWidget {
   /// The coin to display details for
   final int coinID;
 
+  /// Declared here so it could be called from another class
+  /// function add a comment to the database of comments
+  /// Format is username: comment [timestamp]
+  static void addComment(String textContent, int coinID) {
+    _CommentsState._addComment(textContent, coinID);
+  }
+
   /// Default Constructor that constructs the widget instance for the specified
   /// coin
   Comments({@required this.coinID});
@@ -21,38 +27,61 @@ class Comments extends StatefulWidget {
 }
 
 class _CommentsState extends State<Comments> {
-  /// get an instance of the current session
-  final _session = Session();
-  final _auth = FirebaseAuth.instance;
-
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
+    /// Simply return a container that holds the list of comments
+    /// pertaining to a coin
     return Center(
       child: Container(
-        /// need to retrieve array and then build for each item
-        child: _buildUserComments(),
-      ),
+          padding: const EdgeInsets.all(8.0),
+
+          /// need to retrieve array and then build for each item
+          child: FutureBuilder(
+              future: _buildUserComments(),
+
+              /// return comments or placeholder
+              builder: (BuildContext context, AsyncSnapshot<Widget> data) {
+                /// Return container if state isn't done
+                if (data.connectionState == ConnectionState.waiting)
+                  return Container();
+                else
+                  return data.data;
+              })),
     );
   }
 
-//  /// Builds a widget for displaying the user name
-//  Widget _buildAccountName() => _session.user.displayName == null
-//      ? Container()
-//      : Text(_session.user.displayName);
-//
-//  /// Builds a widget for displaying the user email address
-//  Widget _buildAccountEmail() =>
-//      _session.user.email == null ? Container() : Text(_session.user.email);
-
   /// Creates a widget for the list of tracked coins
-  Widget _buildUserComments() => _buildStreamComments(_userComments());
+  Future<Widget> _buildUserComments() async {
+    final coinID = widget.coinID;
+
+    /// Get a reference to the comments for the specified coin
+    final DocumentReference commentsRef = UserComments.buildReference(coinID);
+
+    /// bool that holds check
+    bool commentsExist;
+
+    ///Check if a comment document exists
+    await commentsRef.get().asStream().first.then((data) {
+      commentsExist = data.exists;
+    });
+
+    /// if the document doesn't exist, there are no comments, so return a placeholder
+    /// otherwise, return the comments
+    Widget toReturn;
+    if (commentsExist) {
+      toReturn = _buildStreamComments(_userComments(commentsRef));
+    } else {
+      toReturn = Text(
+        'Start Commenting!',
+        style: TextStyle(color: Colors.grey),
+      );
+    }
+    return toReturn;
+  }
 
   /// Return the stream built from comments to the specified coin
-  Stream<List<Map<String, dynamic>>> _userComments() {
-    /// Get a reference to the comments for the specified coin
-    final DocumentReference commentsRef = UserComments.buildReference(5204);
-
+  Stream<List<Map<String, dynamic>>> _userComments(
+      DocumentReference commentsRef) {
     /// return the a stream user comments that belong to the specified coin
     return UserComments.buildStream(commentsRef)
         .map((comments) => comments.userComments);
@@ -66,32 +95,44 @@ class _CommentsState extends State<Comments> {
         builder: (context, data) => _buildUserCommentsListView(data),
       );
 
-  Widget _buildUserCommentsListView(List<Map<String, dynamic>> comments) =>
-      ListView.builder(
-          itemCount: comments.length,
-          itemBuilder: (context, int index) =>
-              _buildCommentsRow(comments[index]));
-//      futureWidget(
-//        /// TODO: sort the comments here by post date?
-//          future: _coins?.then((m) => m.entries.toList())?.then((e) {
-//            e.sort(_sort.comparator());
-//            return e;
-//          }),
-//          builder: (context, List<MapEntry<Coin, _CoinPrice>> allEntries) {
-//            final entries = allEntries
-//                .where((entry) => allCoins.contains(entry.key))
-//                .toList();
-//            final coins = _appBarState == _AppBarState.search
-//                ? _filterCoins(entries)
-//                : entries;
-//            return RefreshIndicator(
-//              onRefresh: _refreshCoins,
-//              child: ListView.builder(
-//                itemCount: coins.length,
-//                itemBuilder: (context, index) => _buildCoinRow(coins[index]),
-//              ),
-//            );
-//          });
+  Widget _buildUserCommentsListView(List<Map<String, dynamic>> comments) {
+//    return ListView(
+//      children: <Widget>[
+//        ListTile(title: Text("Row 1")),
+//        Divider(),
+//        ListTile(title: Text("Row 2")),
+//        Divider(),
+//        ListTile(title: Text("Row 3")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//        ListTile(title: Text("Row 4")),
+//        Divider(),
+//      ],
+//    );
+    /// TODO: complains of internalhashmap error here?
+    /// need to figure out how to read comments
+    return ListView.builder(
+        itemCount: comments.length,
+        itemBuilder: (context, int index) =>
+            _buildCommentsRow(comments[index]));
+
+    /// TODO: sort the comments here by post date?
+  }
 
   /// Build a row for each comment in userComments array for the coin
   Widget _buildCommentsRow(Map<String, dynamic> commentEntry) {
@@ -105,5 +146,72 @@ class _CommentsState extends State<Comments> {
         ],
       ),
     );
+  }
+
+  /// function that actually adds the comment to the database
+  static void _addComment(String text, int coinID) {
+    print(text);
+
+    /// get an instance of the current session
+    final _session = Session();
+
+    /// Get a reference to the comments for the specified coin
+    final DocumentReference commentsRef = UserComments.buildReference(coinID);
+
+    /// build the username from the user's email address (part before '@' symbol)
+    final userName = _session.user.email == null
+        ? 'anonymous'
+        : _session.user.email.split('@')[0];
+
+    final currentTime = DateTime.now();
+    int currentHour;
+    int currentMinute;
+    String timePeriod;
+
+    /// convert to 12hr format
+    if (currentTime.hour >= 12) {
+      if (currentTime.hour == 12) {
+        currentHour = currentTime.hour - 12 + 1;
+      } else {
+        currentHour = currentTime.hour - 12;
+      }
+      currentMinute = currentTime.minute;
+      timePeriod = 'PM';
+    } else if (currentTime.hour < 12) {
+      currentHour = currentTime.hour;
+      currentMinute = currentTime.minute;
+      timePeriod = 'AM';
+    }
+
+    final timeStamp = currentHour.toString() +
+        ':' +
+        currentMinute.toString() +
+        ' ' +
+        timePeriod;
+
+    /// Create a new map to be pushed to database
+    final newCommentMapping = Map<String, dynamic>();
+
+    /// Build the map with author name, text, and timestamp
+    newCommentMapping['author'] = userName;
+    newCommentMapping['textContent'] = text;
+    newCommentMapping['timeStamp'] = timeStamp;
+
+    /// Push comment to database
+    Firestore.instance.runTransaction((tx) async {
+      commentsRef.updateData(<String, dynamic>{
+        'userComments': FieldValue.arrayUnion([newCommentMapping]),
+      }).catchError((onError) {
+        /// If we encounter the error (NOT_FOUND) where
+        /// the document was not found then create the document using setData
+        if (onError.toString().contains('NOT_FOUND')) {
+          Firestore.instance.runTransaction((tx) async {
+            commentsRef.setData(<String, dynamic>{
+              'userComments': FieldValue.arrayUnion([newCommentMapping]),
+            });
+          });
+        }
+      });
+    });
   }
 }

@@ -74,5 +74,5 @@ class UserComments {
       : this.fromMap(snapshot.data, reference: snapshot.reference);
 
   /// Converts this document instance to a map
-  toMap() => <String, dynamic>{'trackedSymbols': userComments.cast<dynamic>()};
+  toMap() => <String, dynamic>{'userComments': userComments.cast<dynamic>()};
 }
