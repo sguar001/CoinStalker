@@ -100,8 +100,7 @@ class _CommentsState extends State<Comments> {
       );
 
   Widget _buildUserCommentsListView(List<Map<String, dynamic>> comments) {
-    /// TODO: complains of internalhashmap error here?
-    /// need to figure out how to read comments
+    /// Read and display the comments
     return ListView.builder(
         itemCount: comments.length,
         itemBuilder: (context, int index) =>
@@ -114,11 +113,13 @@ class _CommentsState extends State<Comments> {
   Widget _buildCommentsRow(Map<String, dynamic> commentEntry) {
     return ListTile(
       title: Text(commentEntry['author']),
+      subtitle: Text(commentEntry['textContent']),
       trailing: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text(commentEntry['textContent']),
-          Text(commentEntry['timeStamp'])
+          Flexible(child: Text(commentEntry['timeStamp'])),
         ],
       ),
     );
@@ -164,7 +165,11 @@ class _CommentsState extends State<Comments> {
     }
 
     /// build the actual timestamp
-    final timeStamp = currentHour.toString() +
+    final timeStamp = currentTime.month.toString() +
+        '-' +
+        currentTime.day.toString() +
+        ' ' +
+        currentHour.toString() +
         ':' +
         (currentMinute < 10
             ? '0' + currentMinute.toString()

@@ -212,15 +212,21 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                                     ),
                                     keyboardType: TextInputType.text,
                                     onEditingComplete: () {
-                                      Comments.addComment(
-                                          _commentsController.text,
-                                          widget.coin.id);
-                                      _commentsController.clear();
+                                      /// add the comment and rebuild widget
+                                      setState(() {
+                                        Comments.addComment(
+                                            _commentsController.text,
+                                            widget.coin.id);
+                                        _commentsController.clear();
+                                      });
+
+                                      /// TODO: fix bug where it only reloads when closing keyboard
+                                      /// need to figure out how to reload in addComment, but can't currenlty
+                                      /// call setState there cause static void function
 
                                       /// From services.dart, hides keyboard on submission of comment
-                                      SystemChannels.textInput
-                                          .invokeMethod('TextInput.hide');
-                                      setState(() {});
+//                                      SystemChannels.textInput
+//                                          .invokeMethod('TextInput.hide');
                                     },
                                   ),
                                 ),

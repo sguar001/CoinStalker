@@ -66,9 +66,6 @@ class UserComments {
   /// Reference to the storing document
   final DocumentReference reference;
 
-  /// Preferred symbol to display exchange rates in
-//  final String author;
-
   /// List of user comments for a specific coin
   final List<Map<String, dynamic>> userComments;
 
