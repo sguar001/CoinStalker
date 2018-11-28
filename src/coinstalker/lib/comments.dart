@@ -65,6 +65,10 @@ class _CommentsState extends State<Comments> {
       commentsExist = data.exists;
     });
 
+    /// Check to see if there are comments
+    print(
+        'There comments in the DB for this coin: ' + commentsExist.toString());
+
     /// if the document doesn't exist, there are no comments, so return a placeholder
     /// otherwise, return the comments
     Widget toReturn;
@@ -96,34 +100,6 @@ class _CommentsState extends State<Comments> {
       );
 
   Widget _buildUserCommentsListView(List<Map<String, dynamic>> comments) {
-//    return ListView(
-//      children: <Widget>[
-//        ListTile(title: Text("Row 1")),
-//        Divider(),
-//        ListTile(title: Text("Row 2")),
-//        Divider(),
-//        ListTile(title: Text("Row 3")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//        ListTile(title: Text("Row 4")),
-//        Divider(),
-//      ],
-//    );
     /// TODO: complains of internalhashmap error here?
     /// need to figure out how to read comments
     return ListView.builder(
@@ -171,21 +147,28 @@ class _CommentsState extends State<Comments> {
     /// convert to 12hr format
     if (currentTime.hour >= 12) {
       if (currentTime.hour == 12) {
-        currentHour = currentTime.hour - 12 + 1;
+        currentHour = currentTime.hour;
       } else {
         currentHour = currentTime.hour - 12;
       }
       currentMinute = currentTime.minute;
       timePeriod = 'PM';
     } else if (currentTime.hour < 12) {
-      currentHour = currentTime.hour;
+      if (currentTime.hour == 0) {
+        currentHour = currentTime.hour + 12;
+      } else {
+        currentHour = currentTime.hour;
+      }
       currentMinute = currentTime.minute;
       timePeriod = 'AM';
     }
 
+    /// build the actual timestamp
     final timeStamp = currentHour.toString() +
         ':' +
-        currentMinute.toString() +
+        (currentMinute < 10
+            ? '0' + currentMinute.toString()
+            : currentMinute.toString()) +
         ' ' +
         timePeriod;
 
