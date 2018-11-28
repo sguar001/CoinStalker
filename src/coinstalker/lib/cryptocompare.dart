@@ -5,6 +5,8 @@ import 'dart:core';
 import 'package:http/http.dart' as http;
 import 'package:json_annotation/json_annotation.dart';
 
+import 'price.dart';
+
 part 'cryptocompare.g.dart';
 
 // Based on the API documented at https://min-api.cryptocompare.com/
@@ -206,6 +208,8 @@ class CryptoCompare {
   static const maxLatestNewsCategoriesLength = 400;
   static const maxLatestNewsExcludedCategoriesLength = 400;
   static const maxLatestNewsLanguageLength = 4;
+  static const maxTradingInfoFromSymbolsLength = 300;
+  static const maxTradingInfoToSymbolsLength = 100;
   static const maxPriceMultiFromSymbolsLength = 300;
   static const maxPriceMultiToSymbolsLength = 100;
   static const maxPricesFromSymbolLength = 10;
@@ -240,6 +244,8 @@ class CryptoCompare {
       DateTime.fromMillisecondsSinceEpoch(x * 1000);
   static int toPosixTime(DateTime x) =>
       (x.millisecondsSinceEpoch / 1000.0).floor();
+
+  static String apiKey;
 
   Future<RateLimit> hourRateLimit() async {
     final object = await _fetchJson('stats/rate/hour/limit');
@@ -341,7 +347,34 @@ class CryptoCompare {
     return object.map((x) => NewsCategory.fromJson(x)).toList();
   }
 
-  Future<Map<String, Map<String, num>>> priceMulti(
+  Future<Map<String, Map<String, TradingInfo>>> tradingInfo(
+      List<String> fromSymbols, List<String> toSymbols) async {
+    final params = <String, String>{
+      'fsyms': fromList(fromSymbols),
+      'tsyms': fromList(toSymbols),
+    };
+
+    if (params['fsyms'].length > maxTradingInfoFromSymbolsLength) {
+      throw ArgumentError(
+          'fsyms length must not exceed $maxTradingInfoFromSymbolsLength');
+    }
+    if (params['tsyms'].length > maxTradingInfoToSymbolsLength) {
+      throw ArgumentError(
+          'tsyms length must not exceed $maxTradingInfoToSymbolsLength');
+    }
+
+    final object =
+        await _fetchJson('data/pricemultifull', params: params) as Map;
+    return object.map((k, v) => MapEntry(k as String, v as Map))['RAW'].map(
+        (k, v) => MapEntry(
+            k as String,
+            (v as Map).map((k, v) => MapEntry(
+                k as String,
+                TradingInfo.fromJson(
+                    (v as Map).map((k, v) => MapEntry(k as String, v)))))));
+  }
+
+  Future<Map<String, List<Price>>> priceMulti(
       List<String> fromSymbols, List<String> toSymbols) async {
     final params = <String, String>{
       'fsyms': fromList(fromSymbols),
@@ -358,12 +391,15 @@ class CryptoCompare {
     }
 
     final object = await _fetchJson('data/pricemulti', params: params) as Map;
-    return object.map((k, v) => MapEntry(k as String,
-        (v as Map).map((k, v) => MapEntry(k as String, v as num))));
+    return object.map((k, v) => MapEntry(
+        k as String,
+        (v as Map)
+            .entries
+            .map((e) => Price(e.key as String, e.value as num))
+            .toList()));
   }
 
-  Future<Map<String, num>> prices(
-      String fromSymbol, List<String> toSymbols) async {
+  Future<List<Price>> prices(String fromSymbol, List<String> toSymbols) async {
     final params = <String, String>{
       'fsym': fromSymbol,
       'tsyms': fromList(toSymbols),
@@ -379,11 +415,15 @@ class CryptoCompare {
     }
 
     final object = await _fetchJson('data/price', params: params) as Map;
-    return object.map((k, v) => MapEntry(k as String, v as num));
+    return object.entries
+        .map((e) => Price(e.key as String, e.value as num))
+        .toList();
   }
 
-  Future<num> price(String fromSymbol, String toSymbol) async =>
-      (await prices(fromSymbol, [toSymbol]))[toSymbol];
+  Future<Price> price(String fromSymbol, String toSymbol) async {
+    final x = await prices(fromSymbol, [toSymbol]);
+    return x.isEmpty ? null : x.single;
+  }
 
   Future<List<Ohlcv>> _ohlcv(
       String endpoint, String fromSymbol, String toSymbol,
@@ -422,11 +462,22 @@ class CryptoCompare {
           {int limit = 14}) async =>
       await _ohlcv('data/histoday', fromSymbol, toSymbol, limit: limit);
 
-  Uri _uri(String path, {Map<String, String> params}) =>
-      Uri.https(_authority, path, params);
+  Uri _uri(String path, {Map<String, String> params}) {
+    if (apiKey == null) {
+      throw 'You must specify an API key in cryptocompare.dart';
+    }
+
+    params = params ?? <String, String>{};
+    params['api_key'] = params['api_key'] ?? apiKey;
+    return Uri.https(_authority, path, params);
+  }
+
   Future<http.Response> _fetchRaw(String path,
-          {Map<String, String> params}) async =>
-      http.get(_uri(path, params: params));
+      {Map<String, String> params}) async {
+    final uri = _uri(path, params: params);
+    print('Fetching $uri');
+    return http.get(uri);
+  }
 
   Future<dynamic> _fetchJson(path, {Map<String, String> params}) async {
     final response = await _fetchRaw(path, params: params);
@@ -701,4 +752,110 @@ class Ohlcv {
 
   factory Ohlcv.fromJson(Map<String, dynamic> json) => _$OhlcvFromJson(json);
   Map<String, dynamic> toJson() => _$OhlcvToJson(this);
+}
+
+@JsonSerializable()
+class TradingInfo {
+  @JsonKey(name: 'FROMSYMBOL')
+  final String fromSymbol;
+  @JsonKey(name: 'TOSYMBOL')
+  final String toSymbol;
+  @JsonKey(name: 'PRICE')
+  final num priceValue;
+  @JsonKey(
+      name: 'LASTUPDATE',
+      fromJson: CryptoCompare.fromPosixTime,
+      toJson: CryptoCompare.toPosixTime)
+  final DateTime lastUpdate;
+  @JsonKey(name: 'LASTVOLUME')
+  final num lastVolumeValue;
+  @JsonKey(name: 'LASTVOLUMETO')
+  final num lastVolumeToValue;
+  @JsonKey(name: 'VOLUMEDAY')
+  final num volumeDayValue;
+  @JsonKey(name: 'VOLUMEDAYTO')
+  final num volumeDayToValue;
+  @JsonKey(name: 'VOLUME24HOUR')
+  final num volume24HourValue;
+  @JsonKey(name: 'VOLUME24HOURTO')
+  final num volume24HourToValue;
+  @JsonKey(name: 'OPENDAY')
+  final num openDayValue;
+  @JsonKey(name: 'HIGHDAY')
+  final num highDayValue;
+  @JsonKey(name: 'LOWDAY')
+  final num lowDayValue;
+  @JsonKey(name: 'OPEN24HOUR')
+  final num open24HourValue;
+  @JsonKey(name: 'HIGH24HOUR')
+  final num high24HourValue;
+  @JsonKey(name: 'LOW24HOUR')
+  final num low24HourValue;
+  @JsonKey(name: 'CHANGE24HOUR')
+  final num change24HourValue;
+  @JsonKey(name: 'CHANGEPCT24HOUR')
+  final num changePct24Hour;
+  @JsonKey(name: 'CHANGEDAY')
+  final num changeDayValue;
+  @JsonKey(name: 'CHANGEPCTDAY')
+  final num changePctDay;
+  @JsonKey(name: 'SUPPLY')
+  final num supplyValue;
+  @JsonKey(name: 'MKTCAP')
+  final num marketCapValue;
+  @JsonKey(name: 'TOTALVOLUME24H')
+  final num totalVolume24HourValue;
+  @JsonKey(name: 'TOTALVOLUME24HTO')
+  final num totalVolume24HourToValue;
+
+  TradingInfo({
+    this.fromSymbol,
+    this.toSymbol,
+    this.priceValue,
+    this.lastUpdate,
+    this.lastVolumeValue,
+    this.lastVolumeToValue,
+    this.volumeDayValue,
+    this.volumeDayToValue,
+    this.volume24HourValue,
+    this.volume24HourToValue,
+    this.openDayValue,
+    this.highDayValue,
+    this.lowDayValue,
+    this.open24HourValue,
+    this.high24HourValue,
+    this.low24HourValue,
+    this.change24HourValue,
+    this.changePct24Hour,
+    this.changeDayValue,
+    this.changePctDay,
+    this.supplyValue,
+    this.marketCapValue,
+    this.totalVolume24HourValue,
+    this.totalVolume24HourToValue,
+  });
+
+  Price get price => Price(toSymbol, priceValue);
+  Price get lastVolume => Price(toSymbol, lastVolumeValue);
+  Price get lastVolumeTo => Price(toSymbol, lastVolumeToValue);
+  Price get volumeDay => Price(toSymbol, volumeDayValue);
+  Price get volumeDayTo => Price(toSymbol, volumeDayToValue);
+  Price get volume24Hour => Price(toSymbol, volume24HourValue);
+  Price get volume24HourTo => Price(toSymbol, volume24HourToValue);
+  Price get openDay => Price(toSymbol, openDayValue);
+  Price get highDay => Price(toSymbol, highDayValue);
+  Price get lowDay => Price(toSymbol, lowDayValue);
+  Price get open24Hour => Price(toSymbol, open24HourValue);
+  Price get high24Hour => Price(toSymbol, high24HourValue);
+  Price get low24Hour => Price(toSymbol, low24HourValue);
+  Price get change24Hour => Price(toSymbol, change24HourValue);
+  Price get changeDay => Price(toSymbol, changeDayValue);
+  Price get supply => Price(toSymbol, supplyValue);
+  Price get marketCap => Price(toSymbol, marketCapValue);
+  Price get totalVolume24Hour => Price(toSymbol, totalVolume24HourValue);
+  Price get totalVolume24HourTo => Price(toSymbol, totalVolume24HourToValue);
+
+  factory TradingInfo.fromJson(Map<String, dynamic> json) =>
+      _$TradingInfoFromJson(json);
+  Map<String, dynamic> toJson() => _$TradingInfoToJson(this);
 }

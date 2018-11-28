@@ -78,7 +78,7 @@ class _UserDrawerState extends State<UserDrawer> {
             onTap: _goToCurrencies,
           ),
           ListTile(
-            title: Text('Exchange Rate Calculator'),
+            title: Text('Exchange rate calculator'),
             leading: Icon(Icons.compare_arrows),
             onTap: _goToCalculator,
           ),

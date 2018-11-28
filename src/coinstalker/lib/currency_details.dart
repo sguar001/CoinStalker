@@ -1,15 +1,15 @@
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
-import 'package:share/share.dart';
 import 'package:flutter/services.dart';
+import 'package:share/share.dart';
 
-import 'async_widget.dart';
+import 'comments.dart';
 import 'cryptocompare.dart';
 import 'database.dart';
 import 'drawer.dart';
+import 'either.dart';
 import 'ohlcv_graph.dart';
-import 'comments.dart';
-import 'price_widget.dart';
+import 'price.dart';
 import 'session.dart';
 import 'track_button.dart';
 
@@ -33,8 +33,62 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
   /// Instance of the application session
   final _session = Session();
 
+  /// Instance of the CryptoCompare library
+  final _cryptoCompare = CryptoCompare();
+
+  /// Stream for the user profile
+  Stream<Profile> _profileStream;
+
+  /// Current user profile instance
+  Profile _profile;
+
+  // Live data
+  bool _isLoading = true;
+  List<Ohlcv> _ohlcv1Hour;
+  List<Ohlcv> _ohlcv1Day;
+  List<Ohlcv> _ohlcv1Week;
+  Price _price;
+
   /// For comments text field
   final _commentsController = TextEditingController();
+
+  /// Initializes the widget state
+  @override
+  void initState() {
+    super.initState();
+
+    _profileStream = Profile.buildStream(_session.profileRef);
+    _profileStream.listen((profile) {
+      if (profile == _profile) return;
+      setState(() {
+        _profile = profile;
+        refresh();
+      });
+    });
+  }
+
+  /// Refreshes the live data
+  Future<void> refresh() async {
+    setState(() => _isLoading = true);
+    final futures = [
+      _cryptoCompare.minuteOhlcv(widget.coin.symbol, _profile.displaySymbol,
+          limit: 60),
+      _cryptoCompare.minuteOhlcv(widget.coin.symbol, _profile.displaySymbol,
+          limit: 6 * 24),
+      _cryptoCompare.hourOhlcv(widget.coin.symbol, _profile.displaySymbol,
+          limit: 30 * 24),
+      _cryptoCompare.price(widget.coin.symbol, _profile.displaySymbol),
+    ];
+    return Future.wait(futures).then((responses) {
+      setState(() {
+        _ohlcv1Hour = responses[0];
+        _ohlcv1Day = responses[1];
+        _ohlcv1Week = responses[2];
+        _price = responses[3];
+        _isLoading = false;
+      });
+    });
+  }
 
   /// Describes the part of the user interface represented by this widget
   @override
@@ -47,135 +101,136 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
                 child: Image.network(widget.coin.imageUrl),
               ),
             ),
-            ListView(
-              padding:
-                  const EdgeInsets.only(top: 32.0, left: 32.0, right: 32.0),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: streamWidget(
-                    stream: Profile.buildStream(_session.profileRef)
-                        .map((profile) => profile.displaySymbol),
-                    builder: (context, displaySymbol) => DefaultTabController(
-                          length: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                color: Colors.green,
-                                child: TabBar(
-                                  tabs: [
-                                    Tab(text: '1 Hour'),
-                                    Tab(text: '1 Day'),
-                                    Tab(text: '1 Week'),
-                                  ],
+            CircularProgressFallbackBuilder(
+              isFallback: _isLoading,
+              builder: (context) => RefreshIndicator(
+                    onRefresh: refresh,
+                    child: ListView(
+                      padding: const EdgeInsets.all(32.0),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16.0),
+                          child: DefaultTabController(
+                            length: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  color: Colors.green,
+                                  child: TabBar(
+                                    tabs: [
+                                      Tab(text: '1 Hour'),
+                                      Tab(text: '1 Day'),
+                                      Tab(text: '1 Week'),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 8.0),
-                              AspectRatio(
-                                aspectRatio: 2.0,
-                                child: TabBarView(
-                                  children: [
-                                    _ohlcvWidget(
-                                      future: CryptoCompare().minuteOhlcv(
-                                          widget.coin.symbol, displaySymbol,
-                                          limit: 60),
-                                      symbol: displaySymbol,
-                                      xAxisInterval: Duration(minutes: 10),
-                                      range: '1-hour',
-                                    ),
-                                    _ohlcvWidget(
-                                      future: CryptoCompare().minuteOhlcv(
-                                          widget.coin.symbol, displaySymbol,
-                                          limit: 6 * 24),
-                                      symbol: displaySymbol,
-                                      xAxisInterval: Duration(hours: 3),
-                                      range: '1-day',
-                                    ),
-                                    _ohlcvWidget(
-                                      future: CryptoCompare().hourOhlcv(
-                                          widget.coin.symbol, displaySymbol,
-                                          limit: 30 * 24),
-                                      symbol: displaySymbol,
-                                      xAxisInterval: Duration(days: 1),
-                                      range: '1-week',
-                                    ),
-                                  ],
+                                SizedBox(height: 8.0),
+                                AspectRatio(
+                                  aspectRatio: 2.0,
+                                  child: TabBarView(
+                                    children: [
+                                      _ohlcvWidget(
+                                        data: _ohlcv1Hour,
+                                        symbol: _profile.displaySymbol,
+                                        xAxisInterval: Duration(minutes: 10),
+                                        range: '1-hour',
+                                      ),
+                                      _ohlcvWidget(
+                                        data: _ohlcv1Day,
+                                        symbol: _profile.displaySymbol,
+                                        xAxisInterval: Duration(hours: 3),
+                                        range: '1-day',
+                                      ),
+                                      _ohlcvWidget(
+                                        data: _ohlcv1Week,
+                                        symbol: _profile.displaySymbol,
+                                        xAxisInterval: Duration(days: 1),
+                                        range: '1-week',
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                  ),
-                ),
-                _buildPropertyRow(
-                    name: 'Symbol', value: Text(widget.coin.symbol)),
-                _buildPropertyRow(
-                    name: 'Price',
-                    value: currentPriceWidget(widget.coin.symbol, exact: true)),
-                _buildPropertyRow(
-                    name: 'Algorithm', value: Text(widget.coin.algorithm)),
-                _buildPropertyRow(
-                    name: 'Proof type', value: Text(widget.coin.proofType)),
-                Row(
-                  /// Row that holds the container for list of comments for coin
-                  /// Gets comments from Firebase DB for specific coin ID
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Column(
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.only(top: 16.0),
-                          width: 330.0,
-                          height: 300.0,
-                          child: Comments(coinID: widget.coin.id),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-                Row(
-                  /// Row that holds text field for comment input
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Column(
-                      children: <Widget>[
-                        Container(
-                          padding:
-                              const EdgeInsets.only(top: 16.0, bottom: 16.0),
-                          constraints: BoxConstraints.expand(
-                              width: 300.0, height: 100.0),
-                          child: TextFormField(
-                            controller: _commentsController,
-                            style:
-                                TextStyle(fontSize: 16.0, color: Colors.black),
-                            decoration: InputDecoration(
-                              labelStyle: TextStyle(fontSize: 18.0),
-                              labelText: 'Enter Comment',
-                              border: UnderlineInputBorder(
-                                borderRadius: BorderRadius.circular(5.0),
-                              ),
+                              ],
                             ),
-                            keyboardType: TextInputType.text,
-                            onEditingComplete: () {
-                              Comments.addComment(
-                                  _commentsController.text, widget.coin.id);
-                              _commentsController.clear();
-
-                              /// From services.dart, hides keyboard on submission of comment
-                              SystemChannels.textInput
-                                  .invokeMethod('TextInput.hide');
-                              setState(() {});
-                            },
                           ),
+                        ),
+                        _buildPropertyRow(
+                            name: 'Symbol', value: Text(widget.coin.symbol)),
+                        _buildPropertyRow(
+                            name: 'Price',
+                            value: Text(_price == null
+                                ? 'None'
+                                : _price.toString(exact: true))),
+                        _buildPropertyRow(
+                            name: 'Algorithm',
+                            value: Text(widget.coin.algorithm)),
+                        _buildPropertyRow(
+                            name: 'Proof type',
+                            value: Text(widget.coin.proofType)),
+                        Row(
+                          /// Row that holds the container for list of comments for coin
+                          /// Gets comments from Firebase DB for specific coin ID
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Column(
+                              children: <Widget>[
+                                Container(
+                                  padding: const EdgeInsets.only(top: 16.0),
+                                  width: 330.0,
+                                  height: 300.0,
+                                  child: Comments(coinID: widget.coin.id),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                        Row(
+                          /// Row that holds text field for comment input
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Column(
+                              children: <Widget>[
+                                Container(
+                                  padding: const EdgeInsets.only(
+                                      top: 16.0, bottom: 16.0),
+                                  constraints: BoxConstraints.expand(
+                                      width: 300.0, height: 100.0),
+                                  child: TextFormField(
+                                    controller: _commentsController,
+                                    style: TextStyle(
+                                        fontSize: 16.0, color: Colors.black),
+                                    decoration: InputDecoration(
+                                      labelStyle: TextStyle(fontSize: 18.0),
+                                      labelText: 'Enter Comment',
+                                      border: UnderlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(5.0),
+                                      ),
+                                    ),
+                                    keyboardType: TextInputType.text,
+                                    onEditingComplete: () {
+                                      Comments.addComment(
+                                          _commentsController.text,
+                                          widget.coin.id);
+                                      _commentsController.clear();
+
+                                      /// From services.dart, hides keyboard on submission of comment
+                                      SystemChannels.textInput
+                                          .invokeMethod('TextInput.hide');
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ],
+                  ),
             ),
           ],
         ),
@@ -195,40 +250,35 @@ class _CurrencyDetailsPageState extends State<CurrencyDetailsPage> {
       );
 
   Widget _ohlcvWidget(
-          {@required Future<List<Ohlcv>> future,
-          @required String symbol,
-          @required Duration xAxisInterval,
-          @required String range}) =>
-      futureWidget(
-        future: future,
-        builder: (context, data) => FlatButton(
-              child: OhlcvGraph(
-                data: data,
-                symbol: symbol,
-                xAxisInterval: xAxisInterval,
-              ),
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OhlcvPage(
-                          title: '$range ${widget.coin.symbol}-$symbol chart',
-                          data: data,
-                          symbol: symbol,
-                          xAxisInterval: xAxisInterval,
-                        ),
-                  )),
-            ),
-      );
+      {@required List<Ohlcv> data,
+      @required String symbol,
+      @required Duration xAxisInterval,
+      @required String range}) {
+    if (data == null) return Container();
+    return FlatButton(
+      child: OhlcvGraph(
+        data: data,
+        symbol: symbol,
+        xAxisInterval: xAxisInterval,
+      ),
+      onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OhlcvPage(
+                  title: '$range ${widget.coin.symbol}-$symbol chart',
+                  data: data,
+                  symbol: symbol,
+                  xAxisInterval: xAxisInterval,
+                ),
+          )),
+    );
+  }
 
   /// send a message with the name of the currency, its current value, and
   /// a link that opens the Coinstalker app to that currency page.
   void _shareCoin() async {
-    var price = '';
-
     /// Get the current price of the coin, converted to the users default currency preference
-    await getCurrentPrice(widget.coin.symbol, exact: true).then((value) {
-      price = value;
-    });
+    var price = _price == null ? 'None' : _price.toString(exact: true);
 
     /// Get the name of the coin to be shared
     var coinName = widget.coin.coinName;
